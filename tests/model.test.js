@@ -13,38 +13,60 @@ function test(name, run) {
   }
 }
 
-test("normalizes speed to supported range and 0.05 steps", () => {
+test("normalizes valid speeds and rejects non-numeric input", () => {
   assert.equal(model.normalizeSpeed(8), 5);
   assert.equal(model.normalizeSpeed(0.1), 0.5);
   assert.equal(model.normalizeSpeed(2.53), 2.55);
+  assert.equal(model.normalizeSpeed("no speed"), null);
 });
 
-test("uses a robust median for odd and even evidence sets", () => {
-  assert.equal(model.median([2.5, 2.5, 4, 2.5, 2.5]), 2.5);
-  assert.equal(model.median([2, 2.5, 3, 4]), 2.75);
-});
-
-test("keeps only the newest bounded session evidence", () => {
-  let profile = { sessionSpeeds: [1.5, 2, 2.5] };
-  profile = model.appendSessionSpeed(profile, 3, 3);
-  assert.deepEqual(profile.sessionSpeeds, [2, 2.5, 3]);
+test("uses a robust median over session evidence", () => {
+  const profile = {
+    sessions: [
+      { videoId: "a", speed: 2.5 },
+      { videoId: "b", speed: 2.5 },
+      { videoId: "c", speed: 4 },
+      { videoId: "d", speed: 2.5 },
+      { videoId: "e", speed: 2.5 }
+    ]
+  };
+  assert.equal(model.predictionFor(profile, 3), 2.5);
 });
 
 test("does not predict before the minimum evidence threshold", () => {
-  assert.equal(model.predictionFor({ sessionSpeeds: [2, 2.5] }, 3), null);
-  assert.equal(model.predictionFor({ sessionSpeeds: [2, 2.5, 3] }, 3), 2.5);
+  const profile = { sessions: [{ videoId: "a", speed: 2 }, { videoId: "b", speed: 2.5 }] };
+  assert.equal(model.predictionFor(profile, 3), null);
 });
 
-test("classifies presentation confidence without storing it", () => {
-  assert.equal(model.confidenceFor({ sessionSpeeds: [2, 2.5] }, 3), "Learning");
-  assert.equal(model.confidenceFor({ sessionSpeeds: [2, 2.5, 3] }, 3), "Ready");
-  assert.equal(model.confidenceFor({ sessionSpeeds: [2, 2.5, 3, 3, 3] }, 3), "High");
+test("upserts one sample per video and keeps the newest bounded evidence", () => {
+  let profile = { sessions: [] };
+  profile = model.upsertSessionEvidence(profile, { videoId: "a", speed: 2, observedAt: "2026-07-15T10:00:00Z" }, 3);
+  profile = model.upsertSessionEvidence(profile, { videoId: "b", speed: 2.5, observedAt: "2026-07-15T10:01:00Z" }, 3);
+  profile = model.upsertSessionEvidence(profile, { videoId: "a", speed: 3, observedAt: "2026-07-15T10:02:00Z" }, 3);
+  assert.deepEqual(profile.sessions.map((item) => [item.videoId, item.speed]), [["b", 2.5], ["a", 3]]);
+
+  profile = model.upsertSessionEvidence(profile, { videoId: "c", speed: 3.5, observedAt: "2026-07-15T10:03:00Z" }, 2);
+  assert.deepEqual(profile.sessions.map((item) => item.videoId), ["a", "c"]);
 });
 
-test("accepts only stable meaningful non-excluded sessions", () => {
-  const valid = { stableSpeed: 2.5, activeSeconds: 60, stableSeconds: 35, stableShare: 0.58, viewedFraction: 0.2 };
+test("requires a manual, stable, meaningful session", () => {
+  const valid = {
+    manualAdjusted: true,
+    stableSpeed: 2.5,
+    activeSeconds: 35,
+    stableSeconds: 24,
+    stableShare: 0.69
+  };
   assert.equal(model.shouldTrainSession(valid), true);
+  assert.equal(model.shouldTrainSession({ ...valid, manualAdjusted: false }), false);
   assert.equal(model.shouldTrainSession({ ...valid, stableSpeed: 1 }), false);
   assert.equal(model.shouldTrainSession({ ...valid, stableSeconds: 10 }), false);
   assert.equal(model.shouldTrainSession({ ...valid, excluded: true }), false);
+});
+
+test("derives confidence from stored evidence only", () => {
+  const sessions = ["a", "b", "c", "d", "e"].map((videoId) => ({ videoId, speed: 2.5 }));
+  assert.equal(model.confidenceFor({ sessions: sessions.slice(0, 2) }, 3), "Learning");
+  assert.equal(model.confidenceFor({ sessions: sessions.slice(0, 3) }, 3), "Ready");
+  assert.equal(model.confidenceFor({ sessions }, 3), "High");
 });

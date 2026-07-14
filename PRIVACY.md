@@ -6,7 +6,7 @@ Inferfox SmartPace is a Firefox extension that keeps its settings and learned pl
 
 Inferfox SmartPace stores the following data in Firefox extension storage:
 
-- extension mode and global starting speed;
+- local evidence thresholds;
 - YouTube channel identifiers and display labels;
 - recent stable playback-speed samples per channel;
 - profile update timestamps.
@@ -15,7 +15,7 @@ Inferfox SmartPace stores the following data in Firefox extension storage:
 
 Inferfox SmartPace does not send viewing data to the developer and does not use telemetry, analytics, accounts, cloud sync, tracking, or remote services.
 
-The planned YouTube integration will read the active YouTube page and player state locally to identify the current video and channel. It will not send learned profiles to Inferfox or another service.
+The YouTube integration reads the active YouTube page and player state locally to identify the current video and channel. It does not send learned profiles to Inferfox or another service.
 
 ## Reset Controls
 

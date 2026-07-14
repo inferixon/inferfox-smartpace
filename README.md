@@ -1,6 +1,6 @@
 # Inferfox SmartPace
 
-Inferfox SmartPace is a local-first Firefox extension in early development. Its goal is to learn a stable YouTube playback pace per channel and reduce repeated manual speed corrections.
+Inferfox SmartPace is a local-first Firefox extension that learns a stable YouTube playback pace per channel and reduces repeated manual speed corrections.
 
 Instead of treating every speed change as a preference, SmartPace is designed to derive one stable signal from a meaningful viewing session. A channel prediction becomes eligible for automatic use only after enough valid local evidence exists.
 
@@ -8,36 +8,33 @@ Current support target: desktop Firefox 142 or newer.
 
 Inferfox SmartPace is independent and is not affiliated with YouTube or Google.
 
-## Current Foundation
+## Current Behavior
 
 - Pure speed-profile model with bounded normalization.
 - Median prediction from recent session evidence.
 - Readiness and confidence derived from sample count.
 - Firefox local-storage schema boundary.
-- Options dashboard for Learn/Auto mode, global default, profile inspection, and resets.
+- `Ctrl + wheel` playback-rate control in bounded `0.25x` steps.
+- One duration-weighted stable sample per manually adjusted video.
+- Silent median application after 3 valid videos from a channel.
+- Unknown and unready channels remain untouched.
+- Options dashboard for profile inspection and resets.
 - Toolbar popup that opens the dashboard.
 - No accounts, telemetry, analytics, cloud sync, or remote executable code.
-
-## Planned MVP Behavior
-
-- `Ctrl + wheel` playback-rate control on eligible YouTube videos.
-- One stable speed sample per valid viewing session.
 - Up to 10 recent samples per channel.
-- Automatic median application after 3 valid samples in Auto mode.
-- Learn mode that records evidence without changing the starting speed.
-- Conservative exclusion of Shorts, live streams, and explicitly identified music content.
-- Bounded handling of YouTube SPA navigation and player replacement.
+- Shorts and live pages remain untouched.
+- YouTube SPA navigation and player replacement are reconciled without an infinite playback-rate fight.
+- No confirmation prompts, operational switches, or global fallback speed.
 
-YouTube session observation and automatic speed application are not implemented yet. The current repository is a public, testable product foundation rather than a completed release.
-
-## Install For Foundation Testing
+## Install For Local Testing
 
 1. Open `about:debugging#/runtime/this-firefox` in Firefox.
 2. Click **Load Temporary Add-on...**.
 3. Select `manifest.json` from this folder.
-4. Open the toolbar popup and then the dashboard.
-
-The current build validates local dashboard and profile-model behavior only. It does not yet control YouTube playback.
+4. Open an ordinary YouTube `/watch` video.
+5. Hold `Ctrl` and use the mouse wheel to adjust playback speed.
+6. Keep the chosen speed for at least 20 seconds and watch for at least 30 seconds after the first correction.
+7. Open the dashboard to inspect the learned sample.
 
 ## Data Handling
 
@@ -52,10 +49,10 @@ See [PRIVACY.md](PRIVACY.md).
 ```powershell
 Get-Content -Raw manifest.json | ConvertFrom-Json | Out-Null
 Get-ChildItem src,tests -Filter *.js -Recurse | ForEach-Object { node --check $_.FullName }
-node tests/model.test.js
+Get-ChildItem tests -Filter *.test.js | ForEach-Object { node $_.FullName }
 ```
 
-Before an AMO upload, after YouTube integration exists:
+Before an AMO upload:
 
 ```powershell
 $root = Get-Location

@@ -1,0 +1,42 @@
+/* Pure URL, channel-key, and wheel-rate controller rules. */
+
+(function initSmartPaceController(root) {
+  "use strict";
+
+  function normalizeRate(value) {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) return null;
+    return Math.round(Math.min(5, Math.max(0.5, numeric)) * 20) / 20;
+  }
+
+  function videoIdFromUrl(urlString) {
+    try {
+      const url = new URL(String(urlString || ""));
+      if (url.hostname !== "youtube.com" && !url.hostname.endsWith(".youtube.com")) return "";
+      if (url.pathname !== "/watch") return "";
+      return String(url.searchParams.get("v") || "").trim();
+    } catch {
+      return "";
+    }
+  }
+
+  function nextRateForWheel(currentRate, deltaY) {
+    const current = normalizeRate(currentRate);
+    if (current == null || Number(deltaY) === 0) return current;
+    return normalizeRate(current + (Number(deltaY) < 0 ? 0.25 : -0.25));
+  }
+
+  function channelKeyFromSignals(ownerHref, metaChannelId) {
+    const href = String(ownerHref || "");
+    const channelIdMatch = href.match(/^\/channel\/(UC[0-9A-Za-z_-]{10,})/);
+    if (channelIdMatch) return `channelId:${channelIdMatch[1]}`;
+    const handleMatch = href.match(/^\/(\@[0-9A-Za-z._-]+)/);
+    if (handleMatch) return `handle:${handleMatch[1].toLowerCase()}`;
+    const meta = String(metaChannelId || "").trim();
+    return /^UC[0-9A-Za-z_-]{10,}$/.test(meta) ? `channelId:${meta}` : "";
+  }
+
+  const api = { videoIdFromUrl, nextRateForWheel, channelKeyFromSignals };
+  root.SmartPaceController = api;
+  if (typeof module !== "undefined" && module.exports) module.exports = api;
+})(typeof globalThis !== "undefined" ? globalThis : this);

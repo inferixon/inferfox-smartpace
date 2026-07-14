@@ -34,14 +34,18 @@ Get-ChildItem -LiteralPath (Join-Path $root 'src') -Filter *.js -File | ForEach-
   node --check $_.FullName
   if ($LASTEXITCODE -ne 0) { throw "node --check failed: $($_.FullName)" }
 }
-node (Join-Path $root 'tests\model.test.js')
+Get-ChildItem -LiteralPath (Join-Path $root 'tests') -Filter *.test.js -File | ForEach-Object {
+  node $_.FullName
+  if ($LASTEXITCODE -ne 0) { throw "test failed: $($_.FullName)" }
+}
 ```
 
-After YouTube integration is added, manual QA should cover:
+Manual QA should cover:
 
 - eligible watch-page playback control;
-- Learn versus Auto behavior;
+- unknown channels remaining untouched;
+- silent application after a channel profile becomes ready;
 - evidence thresholds and median prediction;
-- Shorts, live, and music exclusions;
+- Shorts and live exclusions;
 - YouTube SPA navigation and player replacement;
 - per-channel and global resets.

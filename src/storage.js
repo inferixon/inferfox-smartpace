@@ -33,13 +33,34 @@
     });
   }
 
+  function normalizeSettings(raw) {
+    return {
+      minSamples: Math.max(1, Math.floor(Number(raw?.minSamples) || root.SmartPaceModel.DEFAULT_SETTINGS.minSamples)),
+      maxSamplesPerChannel: Math.max(1, Math.floor(Number(raw?.maxSamplesPerChannel) || root.SmartPaceModel.DEFAULT_SETTINGS.maxSamplesPerChannel))
+    };
+  }
+
+  function normalizeProfiles(rawProfiles) {
+    const profiles = {};
+    if (!rawProfiles || typeof rawProfiles !== "object") return profiles;
+    for (const [channelKey, rawProfile] of Object.entries(rawProfiles)) {
+      if (!channelKey || !rawProfile || typeof rawProfile !== "object") continue;
+      profiles[channelKey] = {
+        channelName: String(rawProfile.channelName || channelKey),
+        sessions: root.SmartPaceModel.sessionsFor(rawProfile),
+        updatedAt: String(rawProfile.updatedAt || "")
+      };
+    }
+    return profiles;
+  }
+
   function normalizeState(raw) {
     if (!raw || typeof raw !== "object") return defaultState();
     if (raw.schemaVersion !== 1) throw new Error("Unsupported SmartPace storage schema.");
     return {
       schemaVersion: 1,
-      settings: { ...root.SmartPaceModel.DEFAULT_SETTINGS, ...(raw.settings || {}) },
-      profiles: raw.profiles && typeof raw.profiles === "object" ? raw.profiles : {}
+      settings: normalizeSettings(raw.settings),
+      profiles: normalizeProfiles(raw.profiles)
     };
   }
 
@@ -59,5 +80,7 @@
     return normalized;
   }
 
-  root.SmartPaceStorage = { STORAGE_KEY, defaultState, normalizeState, loadState, saveState };
+  const api = { STORAGE_KEY, defaultState, normalizeSettings, normalizeProfiles, normalizeState, loadState, saveState };
+  root.SmartPaceStorage = api;
+  if (typeof module !== "undefined" && module.exports) module.exports = api;
 })(typeof globalThis !== "undefined" ? globalThis : this);

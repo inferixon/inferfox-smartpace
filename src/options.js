@@ -1,15 +1,25 @@
-/* SmartPace options dashboard. */
+/* SmartPace profile dashboard. */
 
 (function initOptions() {
   "use strict";
 
   let state = null;
 
-  function setStatus(id, message, isError = false) {
-    const element = document.getElementById(id);
-    if (!element) return;
+  function setStatus(message, isError = false) {
+    const element = document.getElementById("profileStatus");
     element.textContent = message || "";
     element.className = isError ? "status error" : "status";
+  }
+
+  function runtimeMessage(message) {
+    return new Promise((resolve, reject) => {
+      chrome.runtime.sendMessage(message, (response) => {
+        const error = chrome.runtime.lastError;
+        if (error) reject(new Error(error.message));
+        else if (!response?.ok) reject(new Error(response?.error || "SmartPace request failed."));
+        else resolve(response);
+      });
+    });
   }
 
   function formatSpeed(value) {
@@ -22,14 +32,6 @@
     return Number.isNaN(date.getTime()) ? "–" : date.toLocaleString();
   }
 
-  function setMode(mode) {
-    state.settings.mode = mode === "auto" ? "auto" : "learn";
-    for (const button of document.querySelectorAll("[data-mode]")) {
-      button.setAttribute("aria-pressed", String(button.dataset.mode === state.settings.mode));
-    }
-    document.getElementById("modeMetric").textContent = state.settings.mode === "auto" ? "Auto" : "Learn";
-  }
-
   function profileEntries() {
     return Object.entries(state?.profiles || {}).sort(([, a], [, b]) =>
       String(b.updatedAt || "").localeCompare(String(a.updatedAt || ""))
@@ -40,17 +42,17 @@
     const rows = document.getElementById("profileRows");
     const entries = profileEntries();
     rows.textContent = "";
-
     let readyCount = 0;
+
     for (const [channelKey, profile] of entries) {
+      const sessions = SmartPaceModel.sessionsFor(profile);
       const prediction = SmartPaceModel.predictionFor(profile, state.settings.minSamples);
       if (prediction != null) readyCount += 1;
-
       const row = document.createElement("tr");
       const values = [
         profile.channelName || channelKey,
         formatSpeed(prediction),
-        String(Array.isArray(profile.sessionSpeeds) ? profile.sessionSpeeds.length : 0),
+        String(sessions.length),
         SmartPaceModel.confidenceFor(profile, state.settings.minSamples),
         formatUpdated(profile.updatedAt)
       ];
@@ -76,7 +78,7 @@
       reset.className = "danger";
       reset.textContent = "Reset";
       reset.title = `Reset ${profile.channelName || channelKey}`;
-      reset.addEventListener("click", () => void resetProfile(channelKey));
+      reset.addEventListener("click", () => void resetProfiles(channelKey));
       actionCell.appendChild(reset);
       row.appendChild(actionCell);
       rows.appendChild(row);
@@ -88,24 +90,15 @@
     document.getElementById("resetAll").disabled = entries.length === 0;
   }
 
-  async function resetProfile(channelKey) {
-    delete state.profiles[channelKey];
-    state = await SmartPaceStorage.saveState(state);
+  async function reloadState() {
+    state = await SmartPaceStorage.loadState();
     renderProfiles();
-    setStatus("profileStatus", "Channel profile reset.");
   }
 
-  async function resetAllProfiles() {
-    state.profiles = {};
-    state = await SmartPaceStorage.saveState(state);
-    renderProfiles();
-    setStatus("profileStatus", "All channel profiles reset.");
-  }
-
-  async function saveSettings() {
-    state.settings.globalDefault = SmartPaceModel.normalizeSpeed(document.getElementById("globalDefault").value);
-    state = await SmartPaceStorage.saveState(state);
-    setStatus("settingsStatus", "Settings saved.");
+  async function resetProfiles(channelKey = "") {
+    await runtimeMessage({ type: "profiles.reset", channelKey });
+    await reloadState();
+    setStatus(channelKey ? "Channel profile reset." : "All channel profiles reset.");
   }
 
   async function start() {
@@ -116,25 +109,18 @@
     state = extensionRuntimeAvailable
       ? await SmartPaceStorage.loadState()
       : SmartPaceStorage.defaultState();
-    setMode(state.settings.mode);
-    document.getElementById("globalDefault").value = String(state.settings.globalDefault);
     renderProfiles();
+    if (!extensionRuntimeAvailable) return;
 
-    if (!extensionRuntimeAvailable) {
-      document.getElementById("saveSettings").disabled = true;
-      setStatus("settingsStatus", "Static preview – persistence requires the Firefox extension runtime.");
-      return;
-    }
-
-    document.getElementById("modeLearn").addEventListener("click", () => setMode("learn"));
-    document.getElementById("modeAuto").addEventListener("click", () => setMode("auto"));
-    document.getElementById("saveSettings").addEventListener("click", () => {
-      void saveSettings().catch((error) => setStatus("settingsStatus", error.message, true));
-    });
     document.getElementById("resetAll").addEventListener("click", () => {
-      void resetAllProfiles().catch((error) => setStatus("profileStatus", error.message, true));
+      void resetProfiles().catch((error) => setStatus(error.message, true));
+    });
+    chrome.storage.onChanged.addListener((changes, areaName) => {
+      if (areaName === "local" && changes[SmartPaceStorage.STORAGE_KEY]) {
+        void reloadState().catch((error) => setStatus(error.message, true));
+      }
     });
   }
 
-  void start().catch((error) => setStatus("settingsStatus", error.message, true));
+  void start().catch((error) => setStatus(error.message, true));
 })();
