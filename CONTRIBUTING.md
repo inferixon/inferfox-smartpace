@@ -49,3 +49,4 @@ Manual QA should cover:
 - Shorts and live exclusions;
 - YouTube SPA navigation and player replacement;
 - per-channel and global resets.
+- backup export, valid backup import, and rejected malformed/future-schema backups.
