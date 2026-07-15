@@ -15,6 +15,7 @@ Inferfox SmartPace is independent and is not affiliated with YouTube or Google.
 - Readiness and confidence derived from sample count.
 - Firefox local-storage schema boundary.
 - `Ctrl + wheel` playback-rate control in bounded `0.1x` steps by default.
+- A temporary on-video speed overlay while `Ctrl` is held over the video.
 - A local Options setting to tune the wheel step from `0.05x` to `1.0x`.
 - One duration-weighted stable sample per manually adjusted video.
 - Silent median application after 3 valid videos from a channel.

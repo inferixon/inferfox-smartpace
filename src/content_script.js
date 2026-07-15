@@ -8,8 +8,12 @@
   const TICK_MS = 1000;
   const FLUSH_MS = 5000;
   const RECONCILE_MS = 1000;
+  const OVERLAY_OFFSET_PX = 16;
   let current = null;
   let reconcileTimer = 0;
+  let ctrlHeld = false;
+  let speedOverlay = null;
+  let pointer = { x: -1, y: -1 };
 
   function runtimeMessage(message) {
     return new Promise((resolve, reject) => {
@@ -50,6 +54,61 @@
     if (rate == null) return;
     video.defaultPlaybackRate = rate;
     video.playbackRate = rate;
+  }
+
+  function pointIsOnVideo(x, y) {
+    if (!current?.video?.isConnected) return false;
+    const rect = current.video.getBoundingClientRect();
+    return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
+  }
+
+  function formatOverlaySpeed(rate) {
+    return `${Number(rate).toFixed(2)}×`;
+  }
+
+  function overlayElement() {
+    if (speedOverlay?.isConnected) return speedOverlay;
+    speedOverlay = document.createElement("div");
+    speedOverlay.id = "inferfox-smartpace-speed-overlay";
+    speedOverlay.setAttribute("aria-hidden", "true");
+    Object.assign(speedOverlay.style, {
+      position: "fixed",
+      zIndex: "2147483647",
+      display: "none",
+      padding: "8px 12px",
+      borderRadius: "6px",
+      background: "rgba(0, 0, 0, 0.62)",
+      color: "#ffffff",
+      fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif",
+      fontSize: "20px",
+      fontWeight: "700",
+      fontVariantNumeric: "tabular-nums",
+      lineHeight: "1",
+      pointerEvents: "none"
+    });
+    (document.fullscreenElement || document.body).appendChild(speedOverlay);
+    return speedOverlay;
+  }
+
+  function hideSpeedOverlay() {
+    if (speedOverlay) speedOverlay.style.display = "none";
+  }
+
+  function showSpeedOverlay() {
+    if (!current?.video?.isConnected || !pointIsOnVideo(pointer.x, pointer.y)) return;
+    const overlay = overlayElement();
+    const fullscreenHost = document.fullscreenElement || document.body;
+    if (overlay.parentElement !== fullscreenHost) fullscreenHost.appendChild(overlay);
+    const rect = current.video.getBoundingClientRect();
+    overlay.textContent = formatOverlaySpeed(current.video.playbackRate);
+    overlay.style.left = `${Math.max(8, rect.left + OVERLAY_OFFSET_PX)}px`;
+    overlay.style.top = `${Math.max(8, rect.top + OVERLAY_OFFSET_PX)}px`;
+    overlay.style.display = "block";
+  }
+
+  function updateSpeedOverlay() {
+    if (ctrlHeld && pointIsOnVideo(pointer.x, pointer.y)) showSpeedOverlay();
+    else hideSpeedOverlay();
   }
 
   async function applyReadyPrediction(binding) {
@@ -103,6 +162,7 @@
     const binding = current;
     if (!binding) return;
     current = null;
+    hideSpeedOverlay();
     window.clearInterval(binding.tickTimer);
     window.clearInterval(binding.flushTimer);
     window.clearTimeout(binding.retryTimer);
@@ -155,16 +215,34 @@
   }
 
   function onWheel(event) {
-    if (!event.ctrlKey || !current || !current.video.isConnected || !videoIdFromLocation()) return;
+    if (!event.ctrlKey || !current || !current.video.isConnected || !videoIdFromLocation() || !pointIsOnVideo(event.clientX, event.clientY)) return;
     event.preventDefault();
+    ctrlHeld = true;
+    pointer = { x: event.clientX, y: event.clientY };
+    showSpeedOverlay();
     const nextRate = SmartPaceController.nextRateForWheel(current.video.playbackRate, event.deltaY, current.wheelStep);
     if (nextRate == null || nextRate === current.video.playbackRate) return;
     SmartPaceSession.markManualAdjustment(current.session);
     current.lastTickAt = performance.now();
     setPlaybackRate(current.video, nextRate);
+    showSpeedOverlay();
   }
 
   document.addEventListener("wheel", onWheel, { capture: true, passive: false });
+  document.addEventListener("pointermove", (event) => {
+    pointer = { x: event.clientX, y: event.clientY };
+    updateSpeedOverlay();
+  }, { capture: true, passive: true });
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Control") return;
+    ctrlHeld = true;
+    updateSpeedOverlay();
+  }, true);
+  document.addEventListener("keyup", (event) => {
+    if (event.key !== "Control") return;
+    ctrlHeld = false;
+    hideSpeedOverlay();
+  }, true);
   document.addEventListener("yt-navigate-finish", reconcile, true);
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "hidden") void flushEvidence(current);
@@ -173,6 +251,13 @@
     if (areaName === "local" && changes[SmartPaceStorage.STORAGE_KEY]) void refreshWheelStep(current);
   });
   window.addEventListener("pagehide", () => void flushEvidence(current));
+  window.addEventListener("resize", updateSpeedOverlay);
+  window.addEventListener("scroll", updateSpeedOverlay, true);
+  document.addEventListener("fullscreenchange", updateSpeedOverlay);
+  window.addEventListener("blur", () => {
+    ctrlHeld = false;
+    hideSpeedOverlay();
+  });
   reconcileTimer = window.setInterval(reconcile, RECONCILE_MS);
   window.addEventListener("unload", () => window.clearInterval(reconcileTimer));
   reconcile();
