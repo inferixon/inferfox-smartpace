@@ -9,6 +9,7 @@
   const FLUSH_MS = 5000;
   const RECONCILE_MS = 1000;
   const OVERLAY_OFFSET_PX = 16;
+  const OVERLAY_FONT_STYLE_ID = "inferfox-smartpace-overlay-font";
   let current = null;
   let reconcileTimer = 0;
   let ctrlHeld = false;
@@ -66,8 +67,17 @@
     return `${Number(rate).toFixed(2)}×`;
   }
 
+  function ensureOverlayFont() {
+    if (document.getElementById(OVERLAY_FONT_STYLE_ID)) return;
+    const style = document.createElement("style");
+    style.id = OVERLAY_FONT_STYLE_ID;
+    style.textContent = `@font-face { font-family: "Inferfox Orbitron"; font-style: normal; font-weight: 700; font-display: swap; src: url("${chrome.runtime.getURL("assets/fonts/Orbitron-Bold.woff2")}") format("woff2"); }`;
+    (document.head || document.documentElement).appendChild(style);
+  }
+
   function overlayElement() {
     if (speedOverlay?.isConnected) return speedOverlay;
+    ensureOverlayFont();
     speedOverlay = document.createElement("div");
     speedOverlay.id = "inferfox-smartpace-speed-overlay";
     speedOverlay.setAttribute("aria-hidden", "true");
@@ -79,7 +89,7 @@
       borderRadius: "6px",
       background: "rgba(0, 0, 0, 0.62)",
       color: "#ffffff",
-      fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif",
+      fontFamily: '"Inferfox Orbitron", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif',
       fontSize: "20px",
       fontWeight: "700",
       fontVariantNumeric: "tabular-nums",

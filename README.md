@@ -47,6 +47,10 @@ It does not send viewing data to the developer and does not use telemetry, analy
 
 See [PRIVACY.md](PRIVACY.md).
 
+## Third-Party Font
+
+The on-video speed overlay bundles Orbitron Bold under the SIL Open Font License 1.1. See [assets/fonts/Orbitron-OFL.txt](assets/fonts/Orbitron-OFL.txt).
+
 ## Development Checks
 
 ```powershell
