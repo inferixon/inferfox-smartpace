@@ -70,6 +70,25 @@ async function saveSettings(message) {
   });
 }
 
+async function exportBackup() {
+  return enqueueWrite(async () => {
+    const state = await SmartPaceStorage.loadState();
+    return {
+      payload: SmartPaceStorage.createBackup(state, {
+        extensionVersion: chrome.runtime.getManifest().version
+      })
+    };
+  });
+}
+
+async function importBackup(message) {
+  const importedState = SmartPaceStorage.stateFromBackup(message.payload);
+  return enqueueWrite(async () => {
+    const state = await SmartPaceStorage.saveState(importedState);
+    return { ok: true, profileCount: Object.keys(state.profiles).length };
+  });
+}
+
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   let operation = null;
   if (message?.type === "profile.get") {
@@ -80,6 +99,10 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     operation = resetProfiles(String(message.channelKey || ""));
   } else if (message?.type === "settings.save") {
     operation = saveSettings(message);
+  } else if (message?.type === "backup.export") {
+    operation = exportBackup();
+  } else if (message?.type === "backup.import") {
+    operation = importBackup(message);
   }
 
   if (!operation) return false;

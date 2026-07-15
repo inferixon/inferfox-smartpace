@@ -5,6 +5,7 @@
 
   let state = null;
   let savedWheelStep = null;
+  const MAX_BACKUP_BYTES = 1024 * 1024;
 
   function setStatus(message, isError = false) {
     const element = document.getElementById("profileStatus");
@@ -14,6 +15,12 @@
 
   function setSettingsStatus(message, isError = false) {
     const element = document.getElementById("settingsStatus");
+    element.textContent = message || "";
+    element.className = isError ? "status error" : "status";
+  }
+
+  function setBackupStatus(message, isError = false) {
+    const element = document.getElementById("backupStatus");
     element.textContent = message || "";
     element.className = isError ? "status error" : "status";
   }
@@ -144,6 +151,33 @@
     setSettingsStatus(`Wheel step applied: ${state.settings.wheelStep}×.`);
   }
 
+  async function exportBackup() {
+    const response = await runtimeMessage({ type: "backup.export" });
+    const blob = new Blob([JSON.stringify(response.payload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `inferfox-smartpace-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    link.click();
+    window.setTimeout(() => URL.revokeObjectURL(url), 0);
+    setBackupStatus("Exported SmartPace backup.");
+  }
+
+  async function importBackupFile(file) {
+    if (!file) return;
+    if (file.size > MAX_BACKUP_BYTES) throw new Error("Backup file must be 1 MB or smaller.");
+    let payload;
+    try {
+      payload = JSON.parse(await file.text());
+    } catch {
+      throw new Error("Backup file is not valid JSON.");
+    }
+    const response = await runtimeMessage({ type: "backup.import", payload });
+    await reloadState();
+    const count = Number(response.profileCount) || 0;
+    setBackupStatus(`Imported ${count} channel profile${count === 1 ? "" : "s"}.`);
+  }
+
   async function resetProfiles(channelKey = "") {
     await runtimeMessage({ type: "profiles.reset", channelKey });
     await reloadState();
@@ -174,6 +208,18 @@
       });
     });
     document.getElementById("wheelStep").addEventListener("input", updateWheelStepDirty);
+    document.getElementById("exportBackup").addEventListener("click", () => {
+      void exportBackup().catch((error) => setBackupStatus(error.message, true));
+    });
+    document.getElementById("importBackup").addEventListener("click", () => {
+      document.getElementById("importBackupFile").click();
+    });
+    document.getElementById("importBackupFile").addEventListener("change", (event) => {
+      const input = event.currentTarget;
+      const file = input.files?.[0];
+      input.value = "";
+      void importBackupFile(file).catch((error) => setBackupStatus(error.message, true));
+    });
     chrome.storage.onChanged.addListener((changes, areaName) => {
       if (areaName === "local" && changes[SmartPaceStorage.STORAGE_KEY]) {
         void reloadState().catch((error) => setStatus(error.message, true));

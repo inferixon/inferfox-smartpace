@@ -51,6 +51,7 @@
 
       <section class="card" aria-labelledby="settingsTitle">
         <h2 id="settingsTitle">Settings</h2>
+        <h3>Playback</h3>
         <div class="setting-row">
           <label for="wheelStep">Ctrl + wheel step</label>
           <div class="setting-control">
@@ -60,6 +61,15 @@
         </div>
         <div id="wheelStepHint" class="muted">0.05–1.0× per wheel movement. Default: 0.1×.</div>
         <div id="settingsStatus" class="status" role="status" aria-live="polite"></div>
+        <hr class="settings-divider" />
+        <h3>Profile backup</h3>
+        <div class="backup-actions">
+          <button id="exportBackup" class="primary" type="button">Export JSON</button>
+          <button id="importBackup" class="primary" type="button">Import JSON</button>
+          <input id="importBackupFile" class="hidden" type="file" accept="application/json,.json" />
+        </div>
+        <div id="backupHint" class="muted">Export/import SmartPace profiles and the wheel step. Import replaces current SmartPace data.</div>
+        <div id="backupStatus" class="status" role="status" aria-live="polite"></div>
       </section>
     </main>
 

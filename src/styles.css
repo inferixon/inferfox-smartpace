@@ -70,6 +70,7 @@ button:disabled { cursor: not-allowed; opacity: 0.55; }
 h1 { margin: 0; font-size: 20px; }
 .brand-title { font-family: var(--font-brand); font-weight: 700; letter-spacing: 0.02em; }
 h2 { margin: 0 0 var(--space-sm); font-size: 14px; }
+h3 { margin: var(--space-md) 0 var(--space-sm); font-size: 13px; }
 .muted { color: var(--color-muted); font-size: 12px; }
 .status { min-height: 18px; margin-top: var(--space-sm); font-size: 12px; }
 .status.error { color: var(--color-danger); }
@@ -78,6 +79,8 @@ h2 { margin: 0 0 var(--space-sm); font-size: 14px; }
 .setting-row label { font-size: 13px; font-weight: 600; }
 .setting-control { display: flex; gap: var(--space-xs); }
 .setting-control input { width: 92px; padding: 8px; }
+.settings-divider { margin: var(--space-lg) 0; border: 0; border-top: 1px solid var(--color-border-soft); }
+.backup-actions { display: flex; flex-wrap: wrap; gap: var(--space-xs); }
 .metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-md); margin-top: var(--space-md); }
 .metric { padding: var(--space-md); border: 1px solid var(--color-border-soft); border-radius: var(--radius-sm); }
 .metric strong { display: block; margin-top: 2px; font-size: 24px; }

@@ -17,6 +17,7 @@ Inferfox SmartPace is independent and is not affiliated with YouTube or Google.
 - `Ctrl + wheel` playback-rate control in bounded `0.1x` steps by default.
 - A temporary on-video speed overlay while `Ctrl` is held over the video.
 - A local Options setting to tune the wheel step from `0.05x` to `1.0x`.
+- Versioned JSON export/import for local SmartPace profiles and the wheel step.
 - One duration-weighted stable sample per manually adjusted video.
 - Silent median application after 3 valid videos from a channel.
 - Unknown and unready channels remain untouched.
@@ -44,6 +45,8 @@ Inferfox SmartPace is independent and is not affiliated with YouTube or Google.
 Inferfox SmartPace stores settings and channel speed evidence only in Firefox extension storage on the user's device.
 
 It does not send viewing data to the developer and does not use telemetry, analytics, accounts, cloud sync, tracking, or remote policy services.
+
+Backups are local JSON downloads. Import replaces only SmartPace local data after schema validation.
 
 See [PRIVACY.md](PRIVACY.md).
 
