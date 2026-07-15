@@ -85,6 +85,7 @@ h2 { margin: 0 0 var(--space-sm); font-size: 14px; }
 table { width: 100%; min-width: 720px; border-collapse: collapse; table-layout: fixed; }
 th, td { padding: 10px 8px; border-bottom: 1px solid var(--color-border-soft); text-align: left; vertical-align: middle; font-size: 13px; }
 th { color: #555555; font-size: 12px; font-weight: 600; }
+th:not(.channel-col):not(.action-col), td:not(:first-child):not(.action-col) { text-align: center; }
 .channel-col { width: 32%; }
 .action-col { width: 86px; text-align: right; }
 .speed { color: var(--color-accent); font-weight: 700; }
