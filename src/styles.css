@@ -87,6 +87,8 @@ th, td { padding: 10px 8px; border-bottom: 1px solid var(--color-border-soft); t
 th { color: #555555; font-size: 12px; font-weight: 600; }
 th:not(.channel-col):not(.action-col), td:not(:first-child):not(.action-col) { text-align: center; }
 .channel-col { width: 32%; }
+.channel-link { color: #0645ad; text-decoration: none; }
+.channel-link:hover, .channel-link:focus-visible { font-weight: 700; text-decoration: none; }
 .action-col { width: 86px; text-align: right; }
 .speed { color: var(--color-accent); font-weight: 700; }
 .badge { display: inline-block; padding: 3px 7px; border-radius: 999px; background: var(--color-accent-soft); color: #173b97; font-size: 12px; }

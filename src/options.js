@@ -49,6 +49,13 @@
     return Number.isNaN(date.getTime()) ? "–" : date.toLocaleString();
   }
 
+  function channelUrlForKey(key) {
+    const channelId = String(key || "").match(/^channelId:(UC[0-9A-Za-z_-]{10,})$/);
+    if (channelId) return `https://www.youtube.com/channel/${channelId[1]}`;
+    const handle = String(key || "").match(/^handle:(@[0-9A-Za-z._-]+)$/);
+    return handle ? `https://www.youtube.com/${handle[1]}` : "";
+  }
+
   function profileEntries() {
     return Object.entries(state?.profiles || {}).sort(([, a], [, b]) =>
       String(b.updatedAt || "").localeCompare(String(a.updatedAt || ""))
@@ -77,6 +84,19 @@
       values.forEach((value, index) => {
         const cell = document.createElement("td");
         cell.textContent = value;
+        if (index === 0) {
+          const channelUrl = channelUrlForKey(channelKey);
+          if (channelUrl) {
+            const link = document.createElement("a");
+            link.className = "channel-link";
+            link.href = channelUrl;
+            link.target = "_blank";
+            link.rel = "noopener noreferrer";
+            link.textContent = value;
+            cell.textContent = "";
+            cell.appendChild(link);
+          }
+        }
         if (index === 1) cell.className = "speed";
         if (index === 3) {
           const badge = document.createElement("span");
