@@ -4,6 +4,7 @@
   "use strict";
 
   let state = null;
+  let savedWheelStep = null;
 
   function setStatus(message, isError = false) {
     const element = document.getElementById("profileStatus");
@@ -26,6 +27,16 @@
         else resolve(response);
       });
     });
+  }
+
+  function updateWheelStepDirty() {
+    const input = document.getElementById("wheelStep");
+    const button = document.getElementById("saveWheelStep");
+    const rawValue = String(input.value || "").trim();
+    const validValue = rawValue !== "" && input.validity.valid;
+    const dirty = validValue && SmartPaceController.normalizeWheelStep(rawValue) !== savedWheelStep;
+    button.disabled = !dirty;
+    button.classList.toggle("pending", dirty);
   }
 
   function formatSpeed(value) {
@@ -98,16 +109,19 @@
 
   async function reloadState() {
     state = await SmartPaceStorage.loadState();
+    savedWheelStep = state.settings.wheelStep;
     document.getElementById("wheelStep").value = String(state.settings.wheelStep);
+    updateWheelStepDirty();
     renderProfiles();
   }
 
   async function saveWheelStep() {
     const input = document.getElementById("wheelStep");
     const wheelStep = SmartPaceController.normalizeWheelStep(input.value);
+    document.getElementById("saveWheelStep").disabled = true;
     await runtimeMessage({ type: "settings.save", wheelStep });
     await reloadState();
-    setSettingsStatus(`Wheel step saved: ${state.settings.wheelStep}×.`);
+    setSettingsStatus(`Wheel step applied: ${state.settings.wheelStep}×.`);
   }
 
   async function resetProfiles(channelKey = "") {
@@ -124,7 +138,9 @@
     state = extensionRuntimeAvailable
       ? await SmartPaceStorage.loadState()
       : SmartPaceStorage.defaultState();
+    savedWheelStep = state.settings.wheelStep;
     document.getElementById("wheelStep").value = String(state.settings.wheelStep);
+    updateWheelStepDirty();
     renderProfiles();
     if (!extensionRuntimeAvailable) return;
 
@@ -132,8 +148,12 @@
       void resetProfiles().catch((error) => setStatus(error.message, true));
     });
     document.getElementById("saveWheelStep").addEventListener("click", () => {
-      void saveWheelStep().catch((error) => setSettingsStatus(error.message, true));
+      void saveWheelStep().catch((error) => {
+        setSettingsStatus(error.message, true);
+        updateWheelStepDirty();
+      });
     });
+    document.getElementById("wheelStep").addEventListener("input", updateWheelStepDirty);
     chrome.storage.onChanged.addListener((changes, areaName) => {
       if (areaName === "local" && changes[SmartPaceStorage.STORAGE_KEY]) {
         void reloadState().catch((error) => setStatus(error.message, true));
