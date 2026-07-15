@@ -63,6 +63,10 @@ h2 { margin: 0 0 var(--space-sm); font-size: 14px; }
 .status { min-height: 18px; margin-top: var(--space-sm); font-size: 12px; }
 .status.error { color: var(--color-danger); }
 .card { margin: var(--space-md) 0; padding: var(--space-lg); border: 1px solid var(--color-border); border-radius: var(--radius-md); }
+.setting-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-md); }
+.setting-row label { font-size: 13px; font-weight: 600; }
+.setting-control { display: flex; gap: var(--space-xs); }
+.setting-control input { width: 92px; padding: 8px; }
 .metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-md); margin-top: var(--space-md); }
 .metric { padding: var(--space-md); border: 1px solid var(--color-border-soft); border-radius: var(--radius-sm); }
 .metric strong { display: block; margin-top: 2px; font-size: 24px; }
@@ -82,6 +86,7 @@ th { color: #555555; font-size: 12px; font-weight: 600; }
   body { padding: var(--space-md); }
   .top { align-items: flex-start; }
   .metrics { grid-template-columns: 1fr; }
+  .setting-row { align-items: flex-start; flex-direction: column; }
   .version { display: none; }
 }
 

@@ -1,20 +1,20 @@
 {
   "manifest_version": 2,
   "name": "Inferfox SmartPace",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Learn a comfortable YouTube playback pace per channel.",
   "permissions": [
     "storage",
     "*://*.youtube.com/*"
   ],
   "background": {
-    "scripts": ["src/model.js", "src/storage.js", "src/background.js"],
+    "scripts": ["src/model.js", "src/controller.js", "src/storage.js", "src/background.js"],
     "persistent": false
   },
   "content_scripts": [
     {
       "matches": ["*://*.youtube.com/*"],
-      "js": ["src/model.js", "src/session.js", "src/controller.js", "src/content_script.js"],
+      "js": ["src/model.js", "src/session.js", "src/controller.js", "src/storage.js", "src/content_script.js"],
       "run_at": "document_idle"
     }
   ],

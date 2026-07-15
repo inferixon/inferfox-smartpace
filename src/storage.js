@@ -36,7 +36,8 @@
   function normalizeSettings(raw) {
     return {
       minSamples: Math.max(1, Math.floor(Number(raw?.minSamples) || root.SmartPaceModel.DEFAULT_SETTINGS.minSamples)),
-      maxSamplesPerChannel: Math.max(1, Math.floor(Number(raw?.maxSamplesPerChannel) || root.SmartPaceModel.DEFAULT_SETTINGS.maxSamplesPerChannel))
+      maxSamplesPerChannel: Math.max(1, Math.floor(Number(raw?.maxSamplesPerChannel) || root.SmartPaceModel.DEFAULT_SETTINGS.maxSamplesPerChannel)),
+      wheelStep: root.SmartPaceController.normalizeWheelStep(raw?.wheelStep)
     };
   }
 

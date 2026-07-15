@@ -5,7 +5,8 @@
 
   const DEFAULT_SETTINGS = Object.freeze({
     minSamples: 3,
-    maxSamplesPerChannel: 10
+    maxSamplesPerChannel: 10,
+    wheelStep: 0.1
   });
 
   function clamp(value, min, max) {

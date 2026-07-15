@@ -14,7 +14,8 @@ Inferfox SmartPace is independent and is not affiliated with YouTube or Google.
 - Median prediction from recent session evidence.
 - Readiness and confidence derived from sample count.
 - Firefox local-storage schema boundary.
-- `Ctrl + wheel` playback-rate control in bounded `0.25x` steps.
+- `Ctrl + wheel` playback-rate control in bounded `0.1x` steps by default.
+- A local Options setting to tune the wheel step from `0.05x` to `1.0x`.
 - One duration-weighted stable sample per manually adjusted video.
 - Silent median application after 3 valid videos from a channel.
 - Unknown and unready channels remain untouched.
@@ -33,8 +34,9 @@ Inferfox SmartPace is independent and is not affiliated with YouTube or Google.
 3. Select `manifest.json` from this folder.
 4. Open an ordinary YouTube `/watch` video.
 5. Hold `Ctrl` and use the mouse wheel to adjust playback speed.
-6. Keep the chosen speed for at least 20 seconds and watch for at least 30 seconds after the first correction.
-7. Open the dashboard to inspect the learned sample.
+6. Optionally open the dashboard to tune the wheel step.
+7. Keep the chosen speed for at least 20 seconds and watch for at least 30 seconds after the first correction.
+8. Open the dashboard to inspect the learned sample.
 
 ## Data Handling
 

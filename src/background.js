@@ -58,6 +58,18 @@ async function resetProfiles(channelKey) {
   });
 }
 
+async function saveSettings(message) {
+  return enqueueWrite(async () => {
+    const state = await SmartPaceStorage.loadState();
+    state.settings = SmartPaceStorage.normalizeSettings({
+      ...state.settings,
+      wheelStep: message.wheelStep
+    });
+    await SmartPaceStorage.saveState(state);
+    return { ok: true, settings: state.settings };
+  });
+}
+
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   let operation = null;
   if (message?.type === "profile.get") {
@@ -66,6 +78,8 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     operation = upsertEvidence(message);
   } else if (message?.type === "profiles.reset") {
     operation = resetProfiles(String(message.channelKey || ""));
+  } else if (message?.type === "settings.save") {
+    operation = saveSettings(message);
   }
 
   if (!operation) return false;

@@ -19,11 +19,19 @@ test("accepts ordinary watch URLs and rejects Shorts and live pages", () => {
   assert.equal(controller.videoIdFromUrl("https://www.youtube.com/live/abc123"), "");
 });
 
-test("changes speed by bounded quarter steps", () => {
-  assert.equal(controller.nextRateForWheel(2, -120), 2.25);
-  assert.equal(controller.nextRateForWheel(2, 120), 1.75);
+test("changes speed by bounded configurable steps", () => {
+  assert.equal(controller.nextRateForWheel(2, -120), 2.1);
+  assert.equal(controller.nextRateForWheel(2, 120), 1.9);
+  assert.equal(controller.nextRateForWheel(2, -120, 0.25), 2.25);
   assert.equal(controller.nextRateForWheel(5, -120), 5);
   assert.equal(controller.nextRateForWheel(0.5, 120), 0.5);
+});
+
+test("normalizes the wheel step to a usable bounded increment", () => {
+  assert.equal(controller.normalizeWheelStep(), 0.1);
+  assert.equal(controller.normalizeWheelStep(0.33), 0.35);
+  assert.equal(controller.normalizeWheelStep(0.01), 0.05);
+  assert.equal(controller.normalizeWheelStep(4), 1);
 });
 
 test("prefers the current owner link over potentially stale page metadata", () => {

@@ -24,6 +24,19 @@
         <div class="metric"><span class="muted">Ready profiles</span><strong id="readyCount">0</strong></div>
       </section>
 
+      <section class="card" aria-labelledby="playbackTitle">
+        <h2 id="playbackTitle">Playback control</h2>
+        <div class="setting-row">
+          <label for="wheelStep">Ctrl + wheel step</label>
+          <div class="setting-control">
+            <input id="wheelStep" type="number" min="0.05" max="1" step="0.05" inputmode="decimal" aria-describedby="wheelStepHint" />
+            <button id="saveWheelStep" class="primary" type="button">Save</button>
+          </div>
+        </div>
+        <div id="wheelStepHint" class="muted">0.05–1.0× per wheel movement. Default: 0.1×.</div>
+        <div id="settingsStatus" class="status" role="status" aria-live="polite"></div>
+      </section>
+
       <section class="card" aria-labelledby="profilesTitle">
         <h2 id="profilesTitle">Channel profiles</h2>
         <div class="muted">Use Ctrl + wheel while watching. After 3 valid videos, SmartPace silently reuses the channel median.</div>
@@ -51,6 +64,7 @@
     </main>
 
     <script src="model.js"></script>
+    <script src="controller.js"></script>
     <script src="storage.js"></script>
     <script src="options.js"></script>
   </body>

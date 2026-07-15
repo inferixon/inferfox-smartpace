@@ -2,6 +2,7 @@
 
 const assert = require("node:assert/strict");
 globalThis.SmartPaceModel = require("../src/model.js");
+globalThis.SmartPaceController = require("../src/controller.js");
 const storage = require("../src/storage.js");
 
 function test(name, run) {
@@ -16,7 +17,7 @@ function test(name, run) {
 
 test("default state contains no mode or global fallback speed", () => {
   const state = storage.defaultState();
-  assert.deepEqual(state.settings, { minSamples: 3, maxSamplesPerChannel: 10 });
+  assert.deepEqual(state.settings, { minSamples: 3, maxSamplesPerChannel: 10, wheelStep: 0.1 });
   assert.equal("mode" in state.settings, false);
   assert.equal("globalDefault" in state.settings, false);
 });
@@ -24,7 +25,7 @@ test("default state contains no mode or global fallback speed", () => {
 test("normalizer removes obsolete UI settings and migrates numeric evidence", () => {
   const state = storage.normalizeState({
     schemaVersion: 1,
-    settings: { obsoleteMode: "legacy", obsoleteFallback: 3, minSamples: 3, maxSamplesPerChannel: 10 },
+    settings: { obsoleteMode: "legacy", obsoleteFallback: 3, minSamples: 3, maxSamplesPerChannel: 10, wheelStep: 0.33 },
     profiles: {
       "channelId:UCexample12345": {
         channelName: "Example",
@@ -33,7 +34,7 @@ test("normalizer removes obsolete UI settings and migrates numeric evidence", ()
       }
     }
   });
-  assert.deepEqual(state.settings, { minSamples: 3, maxSamplesPerChannel: 10 });
+  assert.deepEqual(state.settings, { minSamples: 3, maxSamplesPerChannel: 10, wheelStep: 0.35 });
   assert.deepEqual(
     state.profiles["channelId:UCexample12345"].sessions.map((item) => item.speed),
     [2, 2.5, 3]

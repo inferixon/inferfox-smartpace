@@ -9,6 +9,12 @@
     return Math.round(Math.min(5, Math.max(0.5, numeric)) * 20) / 20;
   }
 
+  function normalizeWheelStep(value) {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) return 0.1;
+    return Math.round(Math.min(1, Math.max(0.05, numeric)) * 20) / 20;
+  }
+
   function videoIdFromUrl(urlString) {
     try {
       const url = new URL(String(urlString || ""));
@@ -20,10 +26,11 @@
     }
   }
 
-  function nextRateForWheel(currentRate, deltaY) {
+  function nextRateForWheel(currentRate, deltaY, step = 0.1) {
     const current = normalizeRate(currentRate);
     if (current == null || Number(deltaY) === 0) return current;
-    return normalizeRate(current + (Number(deltaY) < 0 ? 0.25 : -0.25));
+    const wheelStep = normalizeWheelStep(step);
+    return normalizeRate(current + (Number(deltaY) < 0 ? wheelStep : -wheelStep));
   }
 
   function channelKeyFromSignals(ownerHref, metaChannelId) {
@@ -36,7 +43,7 @@
     return /^UC[0-9A-Za-z_-]{10,}$/.test(meta) ? `channelId:${meta}` : "";
   }
 
-  const api = { videoIdFromUrl, nextRateForWheel, channelKeyFromSignals };
+  const api = { videoIdFromUrl, nextRateForWheel, normalizeWheelStep, channelKeyFromSignals };
   root.SmartPaceController = api;
   if (typeof module !== "undefined" && module.exports) module.exports = api;
 })(typeof globalThis !== "undefined" ? globalThis : this);

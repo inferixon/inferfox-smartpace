@@ -11,6 +11,12 @@
     element.className = isError ? "status error" : "status";
   }
 
+  function setSettingsStatus(message, isError = false) {
+    const element = document.getElementById("settingsStatus");
+    element.textContent = message || "";
+    element.className = isError ? "status error" : "status";
+  }
+
   function runtimeMessage(message) {
     return new Promise((resolve, reject) => {
       chrome.runtime.sendMessage(message, (response) => {
@@ -92,7 +98,16 @@
 
   async function reloadState() {
     state = await SmartPaceStorage.loadState();
+    document.getElementById("wheelStep").value = String(state.settings.wheelStep);
     renderProfiles();
+  }
+
+  async function saveWheelStep() {
+    const input = document.getElementById("wheelStep");
+    const wheelStep = SmartPaceController.normalizeWheelStep(input.value);
+    await runtimeMessage({ type: "settings.save", wheelStep });
+    await reloadState();
+    setSettingsStatus(`Wheel step saved: ${state.settings.wheelStep}×.`);
   }
 
   async function resetProfiles(channelKey = "") {
@@ -109,11 +124,15 @@
     state = extensionRuntimeAvailable
       ? await SmartPaceStorage.loadState()
       : SmartPaceStorage.defaultState();
+    document.getElementById("wheelStep").value = String(state.settings.wheelStep);
     renderProfiles();
     if (!extensionRuntimeAvailable) return;
 
     document.getElementById("resetAll").addEventListener("click", () => {
       void resetProfiles().catch((error) => setStatus(error.message, true));
+    });
+    document.getElementById("saveWheelStep").addEventListener("click", () => {
+      void saveWheelStep().catch((error) => setSettingsStatus(error.message, true));
     });
     chrome.storage.onChanged.addListener((changes, areaName) => {
       if (areaName === "local" && changes[SmartPaceStorage.STORAGE_KEY]) {

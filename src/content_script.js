@@ -1,6 +1,6 @@
 /* YouTube playback control, session evidence, and silent channel prediction. */
 
-/* global SmartPaceController, SmartPaceModel, SmartPaceSession */
+/* global SmartPaceController, SmartPaceModel, SmartPaceSession, SmartPaceStorage */
 
 (function initSmartPaceContent() {
   "use strict";
@@ -64,6 +64,15 @@
     }
   }
 
+  async function refreshWheelStep(binding) {
+    try {
+      const state = await SmartPaceStorage.loadState();
+      if (binding && binding === current) binding.wheelStep = state.settings.wheelStep;
+    } catch {
+      // A safe default remains available while storage is temporarily unavailable.
+    }
+  }
+
   function recordTick(binding) {
     const now = performance.now();
     const elapsedSeconds = Math.min(2.5, Math.max(0, (now - binding.lastTickAt) / 1000));
@@ -110,6 +119,7 @@
       channelName,
       video,
       prediction: null,
+      wheelStep: SmartPaceModel.DEFAULT_SETTINGS.wheelStep,
       session: SmartPaceSession.createSession(videoId),
       lastTickAt: performance.now(),
       tickTimer: 0,
@@ -123,6 +133,7 @@
     video.addEventListener("loadedmetadata", binding.applyHandler);
     video.addEventListener("canplay", binding.applyHandler);
     current = binding;
+    void refreshWheelStep(binding);
     void applyReadyPrediction(binding);
     binding.retryTimer = window.setTimeout(binding.applyHandler, 500);
   }
@@ -146,7 +157,7 @@
   function onWheel(event) {
     if (!event.ctrlKey || !current || !current.video.isConnected || !videoIdFromLocation()) return;
     event.preventDefault();
-    const nextRate = SmartPaceController.nextRateForWheel(current.video.playbackRate, event.deltaY);
+    const nextRate = SmartPaceController.nextRateForWheel(current.video.playbackRate, event.deltaY, current.wheelStep);
     if (nextRate == null || nextRate === current.video.playbackRate) return;
     SmartPaceSession.markManualAdjustment(current.session);
     current.lastTickAt = performance.now();
@@ -157,6 +168,9 @@
   document.addEventListener("yt-navigate-finish", reconcile, true);
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "hidden") void flushEvidence(current);
+  });
+  chrome.storage.onChanged.addListener((changes, areaName) => {
+    if (areaName === "local" && changes[SmartPaceStorage.STORAGE_KEY]) void refreshWheelStep(current);
   });
   window.addEventListener("pagehide", () => void flushEvidence(current));
   reconcileTimer = window.setInterval(reconcile, RECONCILE_MS);
