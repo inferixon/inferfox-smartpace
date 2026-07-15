@@ -40,7 +40,7 @@
   }
 
   function formatSpeed(value) {
-    return value == null ? "Learning" : `${Number(value).toFixed(2).replace(/\.00$/, ".0").replace(/0$/, "")}×`;
+    return value == null ? "Learning" : `${Number(value).toFixed(2)}×`;
   }
 
   function formatUpdated(value) {
