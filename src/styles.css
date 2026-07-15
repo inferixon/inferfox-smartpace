@@ -1,4 +1,5 @@
 :root {
+  --font-brand: "Inferfox Orbitron", system-ui, sans-serif;
   --color-bg: #ffffff;
   --color-surface: #ffffff;
   --color-text: #171717;
@@ -16,6 +17,14 @@
   --space-md: 14px;
   --space-lg: 16px;
   --space-xl: 24px;
+}
+
+@font-face {
+  font-family: "Inferfox Orbitron";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("../assets/fonts/Orbitron-Bold.woff2") format("woff2");
 }
 
 * { box-sizing: border-box; }
@@ -59,6 +68,7 @@ button:disabled { cursor: not-allowed; opacity: 0.55; }
   font-weight: 800;
 }
 h1 { margin: 0; font-size: 20px; }
+.brand-title { font-family: var(--font-brand); font-weight: 700; letter-spacing: 0.02em; }
 h2 { margin: 0 0 var(--space-sm); font-size: 14px; }
 .muted { color: var(--color-muted); font-size: 12px; }
 .status { min-height: 18px; margin-top: var(--space-sm); font-size: 12px; }
