@@ -133,10 +133,20 @@
     }
   }
 
-  async function refreshWheelStep(binding) {
+  function resetSession(binding) {
+    binding.session = SmartPaceSession.createSession(binding.videoId);
+    binding.lastTickAt = performance.now();
+  }
+
+  async function refreshRuntimeState(binding) {
     try {
       const state = await SmartPaceStorage.loadState();
-      if (binding && binding === current) binding.wheelStep = state.settings.wheelStep;
+      if (!binding || binding !== current) return;
+      if (binding.resetRevision !== state.resetRevision) {
+        binding.resetRevision = state.resetRevision;
+        resetSession(binding);
+      }
+      binding.wheelStep = state.settings.wheelStep;
     } catch {
       // A safe default remains available while storage is temporarily unavailable.
     }
@@ -161,6 +171,7 @@
         type: "session.upsert",
         channelKey: binding.channelKey,
         channelName: binding.channelName,
+        resetRevision: binding.resetRevision,
         evidence
       });
     } catch {
@@ -190,6 +201,7 @@
       video,
       prediction: null,
       wheelStep: SmartPaceModel.DEFAULT_SETTINGS.wheelStep,
+      resetRevision: 0,
       session: SmartPaceSession.createSession(videoId),
       lastTickAt: performance.now(),
       tickTimer: 0,
@@ -203,7 +215,7 @@
     video.addEventListener("loadedmetadata", binding.applyHandler);
     video.addEventListener("canplay", binding.applyHandler);
     current = binding;
-    void refreshWheelStep(binding);
+    void refreshRuntimeState(binding);
     void applyReadyPrediction(binding);
     binding.retryTimer = window.setTimeout(binding.applyHandler, 500);
   }
@@ -258,7 +270,7 @@
     if (document.visibilityState === "hidden") void flushEvidence(current);
   });
   chrome.storage.onChanged.addListener((changes, areaName) => {
-    if (areaName === "local" && changes[SmartPaceStorage.STORAGE_KEY]) void refreshWheelStep(current);
+    if (areaName === "local" && changes[SmartPaceStorage.STORAGE_KEY]) void refreshRuntimeState(current);
   });
   window.addEventListener("pagehide", () => void flushEvidence(current));
   window.addEventListener("resize", updateSpeedOverlay);

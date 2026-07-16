@@ -17,6 +17,7 @@ function test(name, run) {
 
 test("default state contains no mode or global fallback speed", () => {
   const state = storage.defaultState();
+  assert.equal(state.resetRevision, 0);
   assert.deepEqual(state.settings, { minSamples: 3, maxSamplesPerChannel: 10, wheelStep: 0.1 });
   assert.equal("mode" in state.settings, false);
   assert.equal("globalDefault" in state.settings, false);
@@ -95,6 +96,7 @@ test("normalizes imported profiles to valid bounded SmartPace evidence", () => {
       settings: { wheelStep: 0.25 },
       profiles: {
         "handle:@valid": { channelName: "Valid", sessions, updatedAt: "2026-07-15T12:00:00.000Z" },
+        "handle:@обманутыйроссиянин": { channelName: "Unicode handle", sessions, updatedAt: "2026-07-15T12:00:00.000Z" },
         "untrusted:channel": { channelName: "Ignore", sessions, updatedAt: "2026-07-15T12:00:00.000Z" }
       }
     }
@@ -102,6 +104,7 @@ test("normalizes imported profiles to valid bounded SmartPace evidence", () => {
 
   assert.equal(state.settings.wheelStep, 0.25);
   assert.equal(state.profiles["handle:@valid"].sessions.length, 10);
+  assert.equal(state.profiles["handle:@обманутыйроссиянин"].sessions.length, 10);
   assert.equal(state.profiles["untrusted:channel"], undefined);
 });
 

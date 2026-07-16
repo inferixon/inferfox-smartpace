@@ -24,6 +24,10 @@ async function upsertEvidence(message) {
   }
   return enqueueWrite(async () => {
     const state = await SmartPaceStorage.loadState();
+    const sessionRevision = Number.isSafeInteger(Number(message.resetRevision))
+      ? Number(message.resetRevision)
+      : 0;
+    if (sessionRevision !== state.resetRevision) return { ok: true, stored: false };
     const previous = state.profiles[message.channelKey] || {};
     const next = SmartPaceModel.upsertSessionEvidence(
       previous,
@@ -53,6 +57,7 @@ async function resetProfiles(channelKey) {
     const state = await SmartPaceStorage.loadState();
     if (channelKey) delete state.profiles[channelKey];
     else state.profiles = {};
+    state.resetRevision += 1;
     await SmartPaceStorage.saveState(state);
     return { ok: true };
   });

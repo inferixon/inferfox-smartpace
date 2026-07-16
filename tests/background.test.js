@@ -92,6 +92,33 @@ async function main() {
     assert.match(response.error, /Unsupported SmartPace backup schema/);
     assert.equal(JSON.stringify(await globalThis.SmartPaceStorage.loadState()), before);
   });
+
+  await test("reset invalidates evidence captured by already-open video tabs", async () => {
+    await globalThis.SmartPaceStorage.saveState({
+      schemaVersion: 1,
+      resetRevision: 0,
+      settings: { wheelStep: 0.1 },
+      profiles: {
+        "handle:@example": {
+          channelName: "Example",
+          sessions: [{ videoId: "old-video", speed: 1.5, observedAt: "2026-07-16T12:00:00.000Z" }]
+        }
+      }
+    });
+
+    assert.equal((await send({ type: "profiles.reset", channelKey: "" })).ok, true);
+    const stale = await send({
+      type: "session.upsert",
+      channelKey: "handle:@example",
+      channelName: "Example",
+      resetRevision: 0,
+      evidence: { videoId: "old-video", stableSpeed: 1.5, activeSeconds: 60, stableSeconds: 60, stableShare: 1 }
+    });
+    assert.equal(stale.stored, false);
+    const state = await globalThis.SmartPaceStorage.loadState();
+    assert.equal(state.resetRevision, 1);
+    assert.deepEqual(state.profiles, {});
+  });
 }
 
 void main();

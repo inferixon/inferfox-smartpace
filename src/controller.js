@@ -34,10 +34,15 @@
   }
 
   function channelKeyFromSignals(ownerHref, metaChannelId) {
-    const href = String(ownerHref || "");
+    let href = String(ownerHref || "");
+    try {
+      href = decodeURIComponent(href);
+    } catch {
+      // Keep the original href when a malformed URL escape is encountered.
+    }
     const channelIdMatch = href.match(/^\/channel\/(UC[0-9A-Za-z_-]{10,})/);
     if (channelIdMatch) return `channelId:${channelIdMatch[1]}`;
-    const handleMatch = href.match(/^\/(\@[0-9A-Za-z._-]+)/);
+    const handleMatch = href.match(/^\/(@[^\s/?#]+)/u);
     if (handleMatch) return `handle:${handleMatch[1].toLowerCase()}`;
     const meta = String(metaChannelId || "").trim();
     return /^UC[0-9A-Za-z_-]{10,}$/.test(meta) ? `channelId:${meta}` : "";

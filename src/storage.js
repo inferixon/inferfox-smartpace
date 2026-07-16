@@ -6,9 +6,15 @@
   const STORAGE_KEY = "smartPaceState";
   const BACKUP_KIND = "inferfox-smartpace-backup";
 
+  function normalizeResetRevision(value) {
+    const numeric = Number(value);
+    return Number.isSafeInteger(numeric) && numeric >= 0 ? numeric : 0;
+  }
+
   function defaultState() {
     return {
       schemaVersion: 1,
+      resetRevision: 0,
       settings: { ...root.SmartPaceModel.DEFAULT_SETTINGS },
       profiles: {}
     };
@@ -44,7 +50,7 @@
 
   function validChannelKey(channelKey) {
     return /^channelId:UC[0-9A-Za-z_-]{10,}$/.test(channelKey)
-      || /^handle:@[0-9A-Za-z._-]+$/.test(channelKey);
+      || /^handle:@[^\s/?#]+$/u.test(channelKey);
   }
 
   function normalizedSessions(rawProfile) {
@@ -78,6 +84,7 @@
     if (raw.schemaVersion !== 1) throw new Error("Unsupported SmartPace storage schema.");
     return {
       schemaVersion: 1,
+      resetRevision: normalizeResetRevision(raw.resetRevision),
       settings: normalizeSettings(raw.settings),
       profiles: normalizeProfiles(raw.profiles)
     };

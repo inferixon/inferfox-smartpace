@@ -59,8 +59,8 @@
   function channelUrlForKey(key) {
     const channelId = String(key || "").match(/^channelId:(UC[0-9A-Za-z_-]{10,})$/);
     if (channelId) return `https://www.youtube.com/channel/${channelId[1]}`;
-    const handle = String(key || "").match(/^handle:(@[0-9A-Za-z._-]+)$/);
-    return handle ? `https://www.youtube.com/${handle[1]}` : "";
+    const handle = String(key || "").match(/^handle:(@[^\s/?#]+)$/u);
+    return handle ? `https://www.youtube.com/@${encodeURIComponent(handle[1].slice(1))}` : "";
   }
 
   function profileEntries() {
