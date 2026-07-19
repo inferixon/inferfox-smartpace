@@ -63,10 +63,25 @@
     return handle ? `https://www.youtube.com/@${encodeURIComponent(handle[1].slice(1))}` : "";
   }
 
+  function channelSortRank(value) {
+    const name = String(value || "").trim();
+    if (/^[A-Za-z]/.test(name)) return 0;
+    if (/^[\u0400-\u052F]/u.test(name)) return 1;
+    return 2;
+  }
+
   function profileEntries() {
-    return Object.entries(state?.profiles || {}).sort(([, a], [, b]) =>
-      String(b.updatedAt || "").localeCompare(String(a.updatedAt || ""))
-    );
+    return Object.entries(state?.profiles || {}).sort(([keyA, profileA], [keyB, profileB]) => {
+      const nameA = String(profileA.channelName || keyA).trim();
+      const nameB = String(profileB.channelName || keyB).trim();
+      const rankA = channelSortRank(nameA);
+      const rankB = channelSortRank(nameB);
+      const rankDifference = rankA - rankB;
+      if (rankDifference) return rankDifference;
+      const locale = rankA === 0 ? "en" : rankA === 1 ? "uk" : undefined;
+      return nameA.localeCompare(nameB, locale, { sensitivity: "base" })
+        || String(keyA).localeCompare(String(keyB));
+    });
   }
 
   function renderProfiles() {
