@@ -42,3 +42,12 @@ test("updates the same session snapshot as viewing continues", () => {
   sessionModel.recordPlayback(session, 2, 20);
   assert.equal(sessionModel.buildEvidence(session).stableSpeed, 2);
 });
+
+test("persists evidence only when it becomes materially newer", () => {
+  const previous = { stableSpeed: 2, stableSeconds: 30 };
+  assert.equal(sessionModel.shouldPersistEvidence(null, previous), true);
+  assert.equal(sessionModel.shouldPersistEvidence(previous, { stableSpeed: 2, stableSeconds: 45 }), false);
+  assert.equal(sessionModel.shouldPersistEvidence(previous, { stableSpeed: 2, stableSeconds: 90 }), true);
+  assert.equal(sessionModel.shouldPersistEvidence(previous, { stableSpeed: 2.5, stableSeconds: 35 }), true);
+  assert.equal(sessionModel.shouldPersistEvidence(previous, { stableSpeed: 2, stableSeconds: 45 }, 60, true), true);
+});

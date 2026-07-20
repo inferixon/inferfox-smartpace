@@ -43,6 +43,10 @@
     };
   }
 
+  function manualSpeedFor(profile) {
+    return normalizeSpeed(profile?.manualSpeed);
+  }
+
   function sessionsFor(profile) {
     if (Array.isArray(profile?.sessions)) {
       return profile.sessions.map(normalizedEvidence).filter(Boolean);
@@ -68,16 +72,19 @@
   }
 
   function predictionFor(profile, minSamples = DEFAULT_SETTINGS.minSamples) {
+    const manualSpeed = manualSpeedFor(profile);
+    if (manualSpeed != null) return manualSpeed;
     const sessions = sessionsFor(profile);
     if (sessions.length < minSamples) return null;
     return median(sessions.map((item) => item.speed));
   }
 
-  function confidenceFor(profile, minSamples = DEFAULT_SETTINGS.minSamples) {
+  function profileStatusFor(profile, minSamples = DEFAULT_SETTINGS.minSamples) {
+    if (manualSpeedFor(profile) != null) return "Manual";
     const count = sessionsFor(profile).length;
     if (count < minSamples) return "Learning";
     if (count < 5) return "Ready";
-    return "High";
+    return "Established";
   }
 
   function shouldTrainSession(session) {
@@ -95,10 +102,11 @@
     normalizeSpeed,
     median,
     normalizedEvidence,
+    manualSpeedFor,
     sessionsFor,
     upsertSessionEvidence,
     predictionFor,
-    confidenceFor,
+    profileStatusFor,
     shouldTrainSession
   };
 

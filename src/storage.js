@@ -75,6 +75,8 @@
         sessions: normalizedSessions(rawProfile),
         updatedAt: String(rawProfile.updatedAt || "")
       };
+      const manualSpeed = root.SmartPaceModel.manualSpeedFor(rawProfile);
+      if (manualSpeed != null) profiles[channelKey].manualSpeed = manualSpeed;
     }
     return profiles;
   }

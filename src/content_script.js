@@ -6,8 +6,11 @@
   "use strict";
 
   const TICK_MS = 1000;
-  const FLUSH_MS = 5000;
-  const RECONCILE_MS = 1000;
+  const FLUSH_MS = 15000;
+  const RECONCILE_MS = 5000;
+  const PERSIST_INTERVAL_SECONDS = 60;
+  const PLAYER_INTERACTION_WINDOW_MS = 5000;
+  const AUTOMATIC_RATE_WINDOW_MS = 1500;
   const OVERLAY_OFFSET_PX = 16;
   const OVERLAY_FONT_STYLE_ID = "inferfox-smartpace-overlay-font";
   let current = null;
@@ -53,11 +56,19 @@
     return document.querySelector("video.html5-main-video") || document.querySelector("video");
   }
 
-  function setPlaybackRate(video, value) {
+  function setPlaybackRate(binding, value) {
     const rate = SmartPaceModel.normalizeSpeed(value);
     if (rate == null) return;
-    video.defaultPlaybackRate = rate;
-    video.playbackRate = rate;
+    binding.automaticRateUntil = performance.now() + AUTOMATIC_RATE_WINDOW_MS;
+    binding.video.defaultPlaybackRate = rate;
+    binding.video.playbackRate = rate;
+  }
+
+  function isLearningEligible(video) {
+    if (!video || !Number.isFinite(video.duration) || video.duration <= 0) return false;
+    const player = document.querySelector("#movie_player");
+    if (player?.classList.contains("ad-showing")) return false;
+    return !document.querySelector('ytd-watch-flexy[is-live-content], ytd-watch-flexy[is-premiere], .ytp-live-badge');
   }
 
   function pointIsOnVideo(x, y) {
@@ -125,12 +136,13 @@
   }
 
   async function applyReadyPrediction(binding) {
-    if (!binding || !binding.channelKey || binding !== current || !binding.video.isConnected || binding.session.manualAdjusted) return;
+    if (!binding || !binding.channelKey || binding !== current || !binding.video.isConnected
+      || binding.session.manualAdjusted || !isLearningEligible(binding.video)) return;
     try {
       const response = await runtimeMessage({ type: "profile.get", channelKey: binding.channelKey });
       if (!response.ok || response.prediction == null || binding !== current || binding.session.manualAdjusted) return;
       binding.prediction = response.prediction;
-      setPlaybackRate(binding.video, response.prediction);
+      setPlaybackRate(binding, response.prediction);
     } catch {
       // Extension reloads and transient player states are retried by reconciliation.
     }
@@ -138,6 +150,13 @@
 
   function resetSession(binding) {
     binding.session = SmartPaceSession.createSession(binding.videoId);
+    binding.lastPersistedEvidence = null;
+    binding.lastTickAt = performance.now();
+  }
+
+  function markManualAdjustment(binding) {
+    SmartPaceSession.markManualAdjustment(binding.session);
+    binding.lastPersistedEvidence = null;
     binding.lastTickAt = performance.now();
   }
 
@@ -160,23 +179,30 @@
     const elapsedSeconds = Math.min(2.5, Math.max(0, (now - binding.lastTickAt) / 1000));
     binding.lastTickAt = now;
     if (binding !== current || !binding.session.manualAdjusted) return;
-    if (binding.video.paused || binding.video.ended || binding.video.readyState < 2) return;
+    if (binding.video.paused || binding.video.ended || binding.video.readyState < 2 || !isLearningEligible(binding.video)) return;
     SmartPaceSession.recordPlayback(binding.session, binding.video.playbackRate, elapsedSeconds);
   }
 
-  async function flushEvidence(binding) {
-    if (!binding || !binding.channelKey) return;
+  async function flushEvidence(binding, { final = false } = {}) {
+    if (!binding || !binding.channelKey || !isLearningEligible(binding.video)) return;
     recordTick(binding);
     const evidence = SmartPaceSession.buildEvidence(binding.session);
-    if (!SmartPaceModel.shouldTrainSession(evidence)) return;
+    if (!SmartPaceModel.shouldTrainSession(evidence)
+      || !SmartPaceSession.shouldPersistEvidence(binding.lastPersistedEvidence, evidence, PERSIST_INTERVAL_SECONDS, final)) return;
     try {
-      await runtimeMessage({
+      const response = await runtimeMessage({
         type: "session.upsert",
         channelKey: binding.channelKey,
         channelName: binding.channelName,
         resetRevision: binding.resetRevision,
         evidence
       });
+      if (response.ok && response.stored) {
+        binding.lastPersistedEvidence = {
+          stableSpeed: evidence.stableSpeed,
+          stableSeconds: evidence.stableSeconds
+        };
+      }
     } catch {
       // The next periodic flush retries the same per-video upsert.
     }
@@ -185,14 +211,15 @@
   function teardownCurrent() {
     const binding = current;
     if (!binding) return;
-    current = null;
     hideSpeedOverlay();
+    void flushEvidence(binding, { final: true });
+    current = null;
     window.clearInterval(binding.tickTimer);
     window.clearInterval(binding.flushTimer);
     window.clearTimeout(binding.retryTimer);
     binding.video.removeEventListener("loadedmetadata", binding.applyHandler);
     binding.video.removeEventListener("canplay", binding.applyHandler);
-    void flushEvidence(binding);
+    binding.video.removeEventListener("ratechange", binding.rateChangeHandler);
   }
 
   function bindVideo(videoId, channelKey, channelName, video) {
@@ -206,6 +233,9 @@
       wheelStep: SmartPaceModel.DEFAULT_SETTINGS.wheelStep,
       resetRevision: 0,
       session: SmartPaceSession.createSession(videoId),
+      lastPersistedEvidence: null,
+      automaticRateUntil: 0,
+      playerInteractionUntil: 0,
       lastTickAt: performance.now(),
       tickTimer: 0,
       flushTimer: 0,
@@ -213,10 +243,15 @@
       applyHandler: null
     };
     binding.applyHandler = () => void applyReadyPrediction(binding);
+    binding.rateChangeHandler = () => {
+      if (binding !== current || performance.now() < binding.automaticRateUntil || performance.now() > binding.playerInteractionUntil) return;
+      markManualAdjustment(binding);
+    };
     binding.tickTimer = window.setInterval(() => recordTick(binding), TICK_MS);
     binding.flushTimer = window.setInterval(() => void flushEvidence(binding), FLUSH_MS);
     video.addEventListener("loadedmetadata", binding.applyHandler);
     video.addEventListener("canplay", binding.applyHandler);
+    video.addEventListener("ratechange", binding.rateChangeHandler);
     current = binding;
     void refreshRuntimeState(binding);
     void applyReadyPrediction(binding);
@@ -247,13 +282,34 @@
     showSpeedOverlay();
     const nextRate = SmartPaceController.nextRateForWheel(current.video.playbackRate, event.deltaY, current.wheelStep);
     if (nextRate == null || nextRate === current.video.playbackRate) return;
-    SmartPaceSession.markManualAdjustment(current.session);
-    current.lastTickAt = performance.now();
-    setPlaybackRate(current.video, nextRate);
+    markManualAdjustment(current);
+    setPlaybackRate(current, nextRate);
     showSpeedOverlay();
   }
 
+  function notePlayerInteraction(event) {
+    if (!current || !current.video.isConnected || !pointIsOnVideo(event.clientX, event.clientY)) return;
+    current.playerInteractionUntil = performance.now() + PLAYER_INTERACTION_WINDOW_MS;
+  }
+
+  async function learnCurrentSpeed() {
+    const binding = current;
+    if (!binding?.channelKey || !binding.video.isConnected || !isLearningEligible(binding.video)) {
+      throw new Error("Open a regular video from one channel to learn its current speed.");
+    }
+    const response = await runtimeMessage({
+      type: "profile.learnCurrentSpeed",
+      channelKey: binding.channelKey,
+      channelName: binding.channelName,
+      speed: binding.video.playbackRate
+    });
+    if (!response.ok || !response.stored) throw new Error(response.error || "Current speed could not be learned.");
+    binding.prediction = response.speed;
+    return response;
+  }
+
   document.addEventListener("wheel", onWheel, { capture: true, passive: false });
+  document.addEventListener("pointerdown", notePlayerInteraction, true);
   document.addEventListener("pointermove", (event) => {
     pointer = { x: event.clientX, y: event.clientY };
     updateSpeedOverlay();
@@ -270,12 +326,19 @@
   }, true);
   document.addEventListener("yt-navigate-finish", reconcile, true);
   document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "hidden") void flushEvidence(current);
+    if (document.visibilityState === "hidden") void flushEvidence(current, { final: true });
   });
   chrome.storage.onChanged.addListener((changes, areaName) => {
     if (areaName === "local" && changes[SmartPaceStorage.STORAGE_KEY]) void refreshRuntimeState(current);
   });
-  window.addEventListener("pagehide", () => void flushEvidence(current));
+  chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+    if (message?.type !== "content.learnCurrentSpeed") return false;
+    learnCurrentSpeed()
+      .then((result) => sendResponse({ ok: true, ...result }))
+      .catch((error) => sendResponse({ ok: false, error: String(error?.message || error) }));
+    return true;
+  });
+  window.addEventListener("pagehide", () => void flushEvidence(current, { final: true }));
   window.addEventListener("resize", updateSpeedOverlay);
   window.addEventListener("scroll", updateSpeedOverlay, true);
   document.addEventListener("fullscreenchange", updateSpeedOverlay);

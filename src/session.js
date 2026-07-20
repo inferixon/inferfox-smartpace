@@ -50,7 +50,15 @@
     };
   }
 
-  const api = { createSession, markManualAdjustment, recordPlayback, buildEvidence };
+  function shouldPersistEvidence(previous, evidence, intervalSeconds = 60, final = false) {
+    if (!evidence) return false;
+    if (!previous) return true;
+    if (previous.stableSpeed !== evidence.stableSpeed) return true;
+    if (Number(evidence.stableSeconds) >= Number(previous.stableSeconds) + intervalSeconds) return true;
+    return final && Number(evidence.stableSeconds) > Number(previous.stableSeconds);
+  }
+
+  const api = { createSession, markManualAdjustment, recordPlayback, buildEvidence, shouldPersistEvidence };
   root.SmartPaceSession = api;
   if (typeof module !== "undefined" && module.exports) module.exports = api;
 })(typeof globalThis !== "undefined" ? globalThis : this);

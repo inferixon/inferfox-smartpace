@@ -75,6 +75,23 @@ async function saveSettings(message) {
   });
 }
 
+async function learnCurrentSpeed(message) {
+  const speed = SmartPaceModel.normalizeSpeed(message.speed);
+  if (!message.channelKey || speed == null) return { ok: true, stored: false };
+  return enqueueWrite(async () => {
+    const state = await SmartPaceStorage.loadState();
+    const previous = state.profiles[message.channelKey] || {};
+    state.profiles[message.channelKey] = {
+      ...previous,
+      channelName: String(message.channelName || previous.channelName || message.channelKey),
+      manualSpeed: speed,
+      updatedAt: new Date().toISOString()
+    };
+    await SmartPaceStorage.saveState(state);
+    return { ok: true, stored: true, speed };
+  });
+}
+
 async function exportBackup() {
   return enqueueWrite(async () => {
     const state = await SmartPaceStorage.loadState();
@@ -104,6 +121,8 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     operation = resetProfiles(String(message.channelKey || ""));
   } else if (message?.type === "settings.save") {
     operation = saveSettings(message);
+  } else if (message?.type === "profile.learnCurrentSpeed") {
+    operation = learnCurrentSpeed(message);
   } else if (message?.type === "backup.export") {
     operation = exportBackup();
   } else if (message?.type === "backup.import") {

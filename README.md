@@ -12,20 +12,22 @@ Inferfox SmartPace is independent and is not affiliated with YouTube or Google.
 
 - Pure speed-profile model with bounded normalization.
 - Median prediction from recent session evidence.
-- Readiness and confidence derived from sample count.
+- Profile status derived from evidence count or an explicit manual speed.
 - Firefox local-storage schema boundary.
-- `Ctrl + wheel` playback-rate control in bounded `0.1x` steps by default.
+- `Ctrl + wheel` playback-rate control in bounded `0.1x` steps by default, even when channel learning is unavailable.
+- Learning from a deliberate YouTube player-menu speed change after player interaction.
+- A popup `Learn current speed` action for an immediate per-channel manual speed.
 - A temporary on-video speed overlay while `Ctrl` is held over the video.
 - A local Options setting to tune the wheel step from `0.05x` to `1.0x`.
 - Versioned JSON export/import for local SmartPace profiles and the wheel step.
-- One duration-weighted stable sample per manually adjusted video.
+- One duration-weighted stable sample per manually adjusted video, with storage writes limited to meaningful evidence changes.
 - Silent median application after 3 valid videos from a channel.
 - Unknown and unready channels remain untouched.
 - Options dashboard for profile inspection and resets.
-- Toolbar popup that opens the dashboard.
+- Toolbar popup for the dashboard and immediate current-speed learning.
 - No accounts, telemetry, analytics, cloud sync, or remote executable code.
 - Up to 10 recent samples per channel.
-- Shorts and live pages remain untouched.
+- Shorts remain unsupported; live, premiere, and ad playback are excluded from learning and automatic application.
 - YouTube SPA navigation and player replacement are reconciled without an infinite playback-rate fight.
 - No confirmation prompts, operational switches, or global fallback speed.
 
@@ -35,10 +37,11 @@ Inferfox SmartPace is independent and is not affiliated with YouTube or Google.
 2. Click **Load Temporary Add-on...**.
 3. Select `manifest.json` from this folder.
 4. Open an ordinary YouTube `/watch` video.
-5. Hold `Ctrl` and use the mouse wheel to adjust playback speed.
-6. Optionally open the dashboard to tune the wheel step.
-7. Keep the chosen speed for at least 20 seconds and watch for at least 30 seconds after the first correction.
-8. Open the dashboard to inspect the learned sample.
+5. Hold `Ctrl` and use the mouse wheel to adjust playback speed, or choose a rate through the YouTube player menu.
+6. Use `Learn current speed` in the popup to save the current channel speed immediately, if desired.
+7. Optionally open the dashboard to tune the wheel step.
+8. Keep a learned rate for at least 20 seconds and watch for at least 30 seconds after the first correction.
+9. Open the dashboard to inspect the profile.
 
 ## Data Handling
 

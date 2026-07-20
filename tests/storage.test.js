@@ -131,3 +131,16 @@ test("keeps only the newest imported sample for a duplicate video ID", () => {
     { videoId: "same-video", speed: 2, observedAt: "2026-07-15T12:10:00.000Z" }
   ]);
 });
+
+test("preserves an explicit manual speed without treating it as session evidence", () => {
+  const state = storage.normalizeState({
+    schemaVersion: 1,
+    settings: {},
+    profiles: {
+      "handle:@manual": { channelName: "Manual", manualSpeed: 1, sessions: [] }
+    }
+  });
+
+  assert.equal(state.profiles["handle:@manual"].manualSpeed, 1);
+  assert.deepEqual(state.profiles["handle:@manual"].sessions, []);
+});

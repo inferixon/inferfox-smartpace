@@ -99,7 +99,7 @@
         profile.channelName || channelKey,
         formatSpeed(prediction),
         String(sessions.length),
-        SmartPaceModel.confidenceFor(profile, state.settings.minSamples),
+        SmartPaceModel.profileStatusFor(profile, state.settings.minSamples),
         formatUpdated(profile.updatedAt)
       ];
 

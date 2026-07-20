@@ -64,9 +64,11 @@ test("requires a manual, stable, meaningful session", () => {
   assert.equal(model.shouldTrainSession({ ...valid, excluded: true }), false);
 });
 
-test("derives confidence from stored evidence only", () => {
+test("derives profile status from evidence or an explicit manual speed", () => {
   const sessions = ["a", "b", "c", "d", "e"].map((videoId) => ({ videoId, speed: 2.5 }));
-  assert.equal(model.confidenceFor({ sessions: sessions.slice(0, 2) }, 3), "Learning");
-  assert.equal(model.confidenceFor({ sessions: sessions.slice(0, 3) }, 3), "Ready");
-  assert.equal(model.confidenceFor({ sessions }, 3), "High");
+  assert.equal(model.profileStatusFor({ sessions: sessions.slice(0, 2) }, 3), "Learning");
+  assert.equal(model.profileStatusFor({ sessions: sessions.slice(0, 3) }, 3), "Ready");
+  assert.equal(model.profileStatusFor({ sessions }, 3), "Established");
+  assert.equal(model.profileStatusFor({ manualSpeed: 1, sessions: [] }, 3), "Manual");
+  assert.equal(model.predictionFor({ manualSpeed: 1, sessions: [] }, 3), 1);
 });

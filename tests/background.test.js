@@ -119,6 +119,25 @@ async function main() {
     assert.equal(state.resetRevision, 1);
     assert.deepEqual(state.profiles, {});
   });
+
+  await test("learn current speed creates an explicit manual profile immediately", async () => {
+    await globalThis.SmartPaceStorage.saveState({
+      schemaVersion: 1,
+      settings: { wheelStep: 0.1 },
+      profiles: {}
+    });
+
+    const response = await send({
+      type: "profile.learnCurrentSpeed",
+      channelKey: "handle:@example",
+      channelName: "Example",
+      speed: 2.25
+    });
+    assert.deepEqual(response, { ok: true, stored: true, speed: 2.25 });
+    const state = await globalThis.SmartPaceStorage.loadState();
+    assert.equal(state.profiles["handle:@example"].manualSpeed, 2.25);
+    assert.equal(globalThis.SmartPaceModel.predictionFor(state.profiles["handle:@example"], 3), 2.25);
+  });
 }
 
 void main();

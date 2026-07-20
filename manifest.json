@@ -5,6 +5,7 @@
   "description": "Learn a comfortable YouTube playback pace per channel.",
   "permissions": [
     "storage",
+    "activeTab",
     "*://*.youtube.com/*"
   ],
   "background": {
