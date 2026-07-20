@@ -32,11 +32,14 @@
 
   function channelContext() {
     const metaChannelId = String(document.querySelector('meta[itemprop="channelId"]')?.content || "").trim();
-    const ownerLink = document.querySelector(
-      'ytd-video-owner-renderer a[href^="/channel/"], #owner a[href^="/channel/"], ytd-video-owner-renderer a[href^="/@"], #owner a[href^="/@"]'
+    const ownerLinks = [...document.querySelectorAll(
+      'ytd-video-owner-renderer ytd-channel-name a[href^="/channel/"], #owner ytd-channel-name a[href^="/channel/"], ytd-video-owner-renderer ytd-channel-name a[href^="/@"], #owner ytd-channel-name a[href^="/@"]'
+    )];
+    const channelKey = SmartPaceController.channelKeyFromOwnerLinks(
+      ownerLinks.map((link) => String(link.getAttribute("href") || "")),
+      metaChannelId
     );
-    const href = String(ownerLink?.getAttribute("href") || "");
-    const channelKey = SmartPaceController.channelKeyFromSignals(href, metaChannelId);
+    const ownerLink = ownerLinks[0] || null;
     const channelName = String(
       document.querySelector("ytd-video-owner-renderer ytd-channel-name #text")?.textContent
       || document.querySelector("#owner ytd-channel-name #text")?.textContent
@@ -122,7 +125,7 @@
   }
 
   async function applyReadyPrediction(binding) {
-    if (!binding || binding !== current || !binding.video.isConnected || binding.session.manualAdjusted) return;
+    if (!binding || !binding.channelKey || binding !== current || !binding.video.isConnected || binding.session.manualAdjusted) return;
     try {
       const response = await runtimeMessage({ type: "profile.get", channelKey: binding.channelKey });
       if (!response.ok || response.prediction == null || binding !== current || binding.session.manualAdjusted) return;
@@ -162,7 +165,7 @@
   }
 
   async function flushEvidence(binding) {
-    if (!binding) return;
+    if (!binding || !binding.channelKey) return;
     recordTick(binding);
     const evidence = SmartPaceSession.buildEvidence(binding.session);
     if (!SmartPaceModel.shouldTrainSession(evidence)) return;
@@ -228,7 +231,7 @@
     }
     const video = currentVideoElement();
     const { channelKey, channelName } = channelContext();
-    if (!video || !channelKey) return;
+    if (!video) return;
     if (current?.videoId === videoId && current.video === video && current.channelKey === channelKey) {
       if (channelName && channelName !== channelKey) current.channelName = channelName;
       return;

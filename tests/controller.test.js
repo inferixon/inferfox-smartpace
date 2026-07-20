@@ -46,3 +46,18 @@ test("prefers the current owner link over potentially stale page metadata", () =
   );
   assert.equal(controller.channelKeyFromSignals("", "UCmeta12345678"), "channelId:UCmeta12345678");
 });
+
+test("learns only when a video has one unambiguous owner", () => {
+  assert.equal(
+    controller.channelKeyFromOwnerLinks(["/@fwdays"], "UCmeta12345678"),
+    "handle:@fwdays"
+  );
+  assert.equal(
+    controller.channelKeyFromOwnerLinks(["/@fwdays", "/@another-author"], "UCmeta12345678"),
+    ""
+  );
+  assert.equal(
+    controller.channelKeyFromOwnerLinks([], "UCmeta12345678"),
+    "channelId:UCmeta12345678"
+  );
+});

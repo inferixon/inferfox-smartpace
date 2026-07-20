@@ -48,7 +48,21 @@
     return /^UC[0-9A-Za-z_-]{10,}$/.test(meta) ? `channelId:${meta}` : "";
   }
 
-  const api = { videoIdFromUrl, nextRateForWheel, normalizeWheelStep, channelKeyFromSignals };
+  function channelKeyFromOwnerLinks(ownerHrefs, metaChannelId) {
+    const keys = [...new Set((Array.isArray(ownerHrefs) ? ownerHrefs : [])
+      .map((href) => channelKeyFromSignals(href, ""))
+      .filter(Boolean))];
+    if (keys.length > 1) return "";
+    return keys[0] || channelKeyFromSignals("", metaChannelId);
+  }
+
+  const api = {
+    videoIdFromUrl,
+    nextRateForWheel,
+    normalizeWheelStep,
+    channelKeyFromSignals,
+    channelKeyFromOwnerLinks
+  };
   root.SmartPaceController = api;
   if (typeof module !== "undefined" && module.exports) module.exports = api;
 })(typeof globalThis !== "undefined" ? globalThis : this);
