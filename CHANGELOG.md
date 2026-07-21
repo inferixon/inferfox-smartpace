@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.3
+
+- Fixed small issues
+
 ## 1.0.2
 
 - Added sorting in the dashboard

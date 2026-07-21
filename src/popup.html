@@ -18,10 +18,10 @@
       .brand-icon { width: 28px; height: 28px; flex: 0 0 28px; }
       h1 { margin: 0; font-family: "Inferfox Orbitron", system-ui, sans-serif; font-size: 15px; font-weight: 700; letter-spacing: 0.02em; }
       button { width: 100%; padding: 10px; border: 1px solid #222; border-radius: 8px; background: #222; color: #fff; font: inherit; cursor: pointer; }
-      button.secondary { background: #fff; color: #222; }
       button:focus-visible { outline: 3px solid #9bb4ff; outline-offset: 2px; }
       .actions { display: grid; gap: 8px; }
       .status { min-height: 18px; margin: 8px 0 0; color: #555; font-size: 12px; }
+      .status:empty { display: none; }
       .status.error { color: #b00020; }
     </style>
   </head>
@@ -31,8 +31,8 @@
       <h1>Inferfox SmartPace</h1>
     </div>
     <div class="actions">
-      <button id="learnCurrentSpeed" type="button">Learn current speed</button>
-      <button id="openOptions" class="secondary" type="button">Open dashboard</button>
+      <button id="setCurrentSpeed" type="button" hidden>Set current speed</button>
+      <button id="openOptions" type="button">Open dashboard</button>
     </div>
     <div id="status" class="status" role="status" aria-live="polite"></div>
     <script src="popup.js"></script>

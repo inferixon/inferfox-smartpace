@@ -75,7 +75,7 @@ async function saveSettings(message) {
   });
 }
 
-async function learnCurrentSpeed(message) {
+async function setCurrentSpeed(message) {
   const speed = SmartPaceModel.normalizeSpeed(message.speed);
   if (!message.channelKey || speed == null) return { ok: true, stored: false };
   return enqueueWrite(async () => {
@@ -90,6 +90,13 @@ async function learnCurrentSpeed(message) {
     await SmartPaceStorage.saveState(state);
     return { ok: true, stored: true, speed };
   });
+}
+
+async function setPopupForSender(sender, popup) {
+  const tabId = sender?.tab?.id;
+  if (!Number.isInteger(tabId)) return { ok: true };
+  await chrome.browserAction.setPopup({ tabId, popup });
+  return { ok: true };
 }
 
 async function exportBackup() {
@@ -111,7 +118,7 @@ async function importBackup(message) {
   });
 }
 
-chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   let operation = null;
   if (message?.type === "profile.get") {
     operation = profilePrediction(String(message.channelKey || ""));
@@ -121,8 +128,12 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     operation = resetProfiles(String(message.channelKey || ""));
   } else if (message?.type === "settings.save") {
     operation = saveSettings(message);
-  } else if (message?.type === "profile.learnCurrentSpeed") {
-    operation = learnCurrentSpeed(message);
+  } else if (message?.type === "profile.setCurrentSpeed") {
+    operation = setCurrentSpeed(message);
+  } else if (message?.type === "browserAction.enablePopup") {
+    operation = setPopupForSender(sender, "src/popup.html");
+  } else if (message?.type === "browserAction.disablePopup") {
+    operation = setPopupForSender(sender, "");
   } else if (message?.type === "backup.export") {
     operation = exportBackup();
   } else if (message?.type === "backup.import") {

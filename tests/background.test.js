@@ -4,6 +4,7 @@ const assert = require("node:assert/strict");
 
 const stored = {};
 let messageListener = null;
+const popupCalls = [];
 
 globalThis.chrome = {
   runtime: {
@@ -13,6 +14,12 @@ globalThis.chrome = {
       addListener(listener) {
         messageListener = listener;
       }
+    }
+  },
+  browserAction: {
+    setPopup(details) {
+      popupCalls.push(details);
+      return Promise.resolve();
     }
   },
   storage: {
@@ -33,9 +40,9 @@ globalThis.SmartPaceController = require("../src/controller.js");
 globalThis.SmartPaceStorage = require("../src/storage.js");
 require("../src/background.js");
 
-function send(message) {
+function send(message, sender = {}) {
   return new Promise((resolve) => {
-    const keepAlive = messageListener(message, {}, resolve);
+    const keepAlive = messageListener(message, sender, resolve);
     assert.equal(keepAlive, true);
   });
 }
@@ -120,7 +127,7 @@ async function main() {
     assert.deepEqual(state.profiles, {});
   });
 
-  await test("learn current speed creates an explicit manual profile immediately", async () => {
+  await test("set current speed creates an explicit manual profile immediately", async () => {
     await globalThis.SmartPaceStorage.saveState({
       schemaVersion: 1,
       settings: { wheelStep: 0.1 },
@@ -128,7 +135,7 @@ async function main() {
     });
 
     const response = await send({
-      type: "profile.learnCurrentSpeed",
+      type: "profile.setCurrentSpeed",
       channelKey: "handle:@example",
       channelName: "Example",
       speed: 2.25
@@ -137,6 +144,12 @@ async function main() {
     const state = await globalThis.SmartPaceStorage.loadState();
     assert.equal(state.profiles["handle:@example"].manualSpeed, 2.25);
     assert.equal(globalThis.SmartPaceModel.predictionFor(state.profiles["handle:@example"], 3), 2.25);
+  });
+
+  await test("disables the browser-action popup for the dashboard tab", async () => {
+    const response = await send({ type: "browserAction.disablePopup" }, { tab: { id: 42 } });
+    assert.deepEqual(response, { ok: true });
+    assert.deepEqual(popupCalls.at(-1), { tabId: 42, popup: "" });
   });
 }
 

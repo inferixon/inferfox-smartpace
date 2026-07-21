@@ -34,9 +34,14 @@
   }
 
   function channelContext() {
-    const metaChannelId = String(document.querySelector('meta[itemprop="channelId"]')?.content || "").trim();
+    const playerDetails = window.ytInitialPlayerResponse?.videoDetails;
+    const metaChannelId = String(
+      document.querySelector('meta[itemprop="channelId"]')?.content
+      || playerDetails?.channelId
+      || ""
+    ).trim();
     const ownerLinks = [...document.querySelectorAll(
-      'ytd-video-owner-renderer ytd-channel-name a[href^="/channel/"], #owner ytd-channel-name a[href^="/channel/"], ytd-video-owner-renderer ytd-channel-name a[href^="/@"], #owner ytd-channel-name a[href^="/@"]'
+      'ytd-video-owner-renderer a[href^="/channel/"], #owner a[href^="/channel/"], ytd-video-owner-renderer a[href^="/@"], #owner a[href^="/@"]'
     )];
     const channelKey = SmartPaceController.channelKeyFromOwnerLinks(
       ownerLinks.map((link) => String(link.getAttribute("href") || "")),
@@ -47,6 +52,7 @@
       document.querySelector("ytd-video-owner-renderer ytd-channel-name #text")?.textContent
       || document.querySelector("#owner ytd-channel-name #text")?.textContent
       || ownerLink?.textContent
+      || playerDetails?.author
       || channelKey
     ).replace(/\s+/g, " ").trim();
     return { channelKey, channelName };
@@ -65,10 +71,19 @@
   }
 
   function isLearningEligible(video) {
-    if (!video || !Number.isFinite(video.duration) || video.duration <= 0) return false;
     const player = document.querySelector("#movie_player");
-    if (player?.classList.contains("ad-showing")) return false;
-    return !document.querySelector('ytd-watch-flexy[is-live-content], ytd-watch-flexy[is-premiere], .ytp-live-badge');
+    const details = window.ytInitialPlayerResponse?.videoDetails;
+    const watchPage = document.querySelector("ytd-watch-flexy");
+    const hasTrueAttribute = (name) => {
+      const value = watchPage?.getAttribute(name);
+      return value != null && value !== "false";
+    };
+    return SmartPaceController.isPlaybackEligible({
+      duration: video?.duration,
+      isAd: player?.classList.contains("ad-showing") === true,
+      isLive: details?.isLiveContent === true || hasTrueAttribute("is-live-content"),
+      isPremiere: details?.isUpcoming === true || hasTrueAttribute("is-premiere")
+    });
   }
 
   function pointIsOnVideo(x, y) {
@@ -292,13 +307,14 @@
     current.playerInteractionUntil = performance.now() + PLAYER_INTERACTION_WINDOW_MS;
   }
 
-  async function learnCurrentSpeed() {
+  async function setCurrentSpeed() {
+    reconcile();
     const binding = current;
-    if (!binding?.channelKey || !binding.video.isConnected || !isLearningEligible(binding.video)) {
-      throw new Error("Open a regular video from one channel to learn its current speed.");
-    }
+    if (!binding?.video?.isConnected) throw new Error("Open a regular YouTube video first.");
+    if (!binding.channelKey) throw new Error("This video has no single identifiable channel, so its speed cannot be saved.");
+    if (!isLearningEligible(binding.video)) throw new Error("Only a regular non-live, non-premiere video can save a channel speed.");
     const response = await runtimeMessage({
-      type: "profile.learnCurrentSpeed",
+      type: "profile.setCurrentSpeed",
       channelKey: binding.channelKey,
       channelName: binding.channelName,
       speed: binding.video.playbackRate
@@ -309,6 +325,7 @@
   }
 
   document.addEventListener("wheel", onWheel, { capture: true, passive: false });
+  void runtimeMessage({ type: "browserAction.enablePopup" }).catch(() => {});
   document.addEventListener("pointerdown", notePlayerInteraction, true);
   document.addEventListener("pointermove", (event) => {
     pointer = { x: event.clientX, y: event.clientY };
@@ -332,8 +349,8 @@
     if (areaName === "local" && changes[SmartPaceStorage.STORAGE_KEY]) void refreshRuntimeState(current);
   });
   chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-    if (message?.type !== "content.learnCurrentSpeed") return false;
-    learnCurrentSpeed()
+    if (message?.type !== "content.setCurrentSpeed") return false;
+    setCurrentSpeed()
       .then((result) => sendResponse({ ok: true, ...result }))
       .catch((error) => sendResponse({ ok: false, error: String(error?.message || error) }));
     return true;

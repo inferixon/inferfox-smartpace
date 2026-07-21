@@ -213,6 +213,8 @@
     renderProfiles();
     if (!extensionRuntimeAvailable) return;
 
+    void runtimeMessage({ type: "browserAction.disablePopup" }).catch(() => {});
+
     document.getElementById("resetAll").addEventListener("click", () => {
       void resetProfiles().catch((error) => setStatus(error.message, true));
     });

@@ -33,6 +33,15 @@
     return normalizeRate(current + (Number(deltaY) < 0 ? wheelStep : -wheelStep));
   }
 
+  function isPlaybackEligible(context = {}) {
+    const duration = Number(context.duration);
+    return Number.isFinite(duration)
+      && duration > 0
+      && context.isAd !== true
+      && context.isLive !== true
+      && context.isPremiere !== true;
+  }
+
   function channelKeyFromSignals(ownerHref, metaChannelId) {
     let href = String(ownerHref || "");
     try {
@@ -60,6 +69,7 @@
     videoIdFromUrl,
     nextRateForWheel,
     normalizeWheelStep,
+    isPlaybackEligible,
     channelKeyFromSignals,
     channelKeyFromOwnerLinks
   };

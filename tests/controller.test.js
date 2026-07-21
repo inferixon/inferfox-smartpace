@@ -34,6 +34,15 @@ test("normalizes the wheel step to a usable bounded increment", () => {
   assert.equal(controller.normalizeWheelStep(4), 1);
 });
 
+test("allows only regular VOD playback contexts", () => {
+  assert.equal(controller.isPlaybackEligible({ duration: 600 }), true);
+  assert.equal(controller.isPlaybackEligible({ duration: 0 }), false);
+  assert.equal(controller.isPlaybackEligible({ duration: Infinity }), false);
+  assert.equal(controller.isPlaybackEligible({ duration: 600, isAd: true }), false);
+  assert.equal(controller.isPlaybackEligible({ duration: 600, isLive: true }), false);
+  assert.equal(controller.isPlaybackEligible({ duration: 600, isPremiere: true }), false);
+});
+
 test("prefers the current owner link over potentially stale page metadata", () => {
   assert.equal(
     controller.channelKeyFromSignals("/channel/UCcurrent12345", "UCstale1234567"),
@@ -47,7 +56,7 @@ test("prefers the current owner link over potentially stale page metadata", () =
   assert.equal(controller.channelKeyFromSignals("", "UCmeta12345678"), "channelId:UCmeta12345678");
 });
 
-test("learns only when a video has one unambiguous owner", () => {
+test("uses metadata while owner DOM is delayed, but rejects dual-owner videos", () => {
   assert.equal(
     controller.channelKeyFromOwnerLinks(["/@fwdays"], "UCmeta12345678"),
     "handle:@fwdays"
